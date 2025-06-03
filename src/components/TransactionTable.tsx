@@ -2,11 +2,14 @@
 import React, { useState, useMemo } from 'react';
 import { useFinanceStore } from '../store/financeStore';
 import { TransactionFilters } from './TransactionFilters';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
 
 interface DateFilter {
   start?: Date;
   end?: Date;
 }
+
+const ITEMS_PER_PAGE = 50;
 
 export const TransactionTable: React.FC = () => {
   const { transactions, categories, updateTransactionCategory } = useFinanceStore();
@@ -17,6 +20,7 @@ export const TransactionTable: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [incomeFilter, setIncomeFilter] = useState(false);
   const [expenseFilter, setExpenseFilter] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -72,12 +76,28 @@ export const TransactionTable: React.FC = () => {
       return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
     });
 
-    return filtered.slice(0, 100); // Limit for performance
+    return filtered;
   }, [transactions, searchText, categoryFilter, dateFilter, sortBy, sortOrder, incomeFilter, expenseFilter]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, categoryFilter, dateFilter, sortBy, sortOrder, incomeFilter, expenseFilter]);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'ללא קטגוריה';
-    return categories.find(c => c.id === categoryId)?.name || 'לא ידוע';
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      // Remove kebab-case and capitalize
+      return category.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    return 'לא ידוע';
   };
 
   const getCategoryColor = (categoryId?: string) => {
@@ -148,7 +168,7 @@ export const TransactionTable: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredTransactions.map((transaction) => (
+            {paginatedTransactions.map((transaction) => (
               <tr key={transaction.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {new Date(transaction.date).toLocaleDateString('he-IL')}
@@ -171,7 +191,7 @@ export const TransactionTable: React.FC = () => {
                     <option value="">ללא קטגוריה</option>
                     {categories.map(category => (
                       <option key={category.id} value={category.id}>
-                        {category.name}
+                        {getCategoryName(category.id)}
                       </option>
                     ))}
                   </select>
@@ -185,19 +205,66 @@ export const TransactionTable: React.FC = () => {
         </table>
       </div>
 
-      {filteredTransactions.length === 0 && (
+      {paginatedTransactions.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500">לא נמצאו עסקאות</p>
         </div>
       )}
 
-      {transactions.length > 100 && (
-        <div className="p-4 text-center border-t border-gray-200">
-          <p className="text-sm text-gray-500">
-            מוצגות {Math.min(100, filteredTransactions.length)} עסקאות ראשונות מתוך {transactions.length.toLocaleString()}
-          </p>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center p-4 border-t border-gray-200">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(pageNum)}
+                      isActive={currentPage === pageNum}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
+
+      {/* Results info */}
+      <div className="p-4 text-center border-t border-gray-200">
+        <p className="text-sm text-gray-500">
+          מוצגות {startIndex + 1}-{Math.min(endIndex, filteredTransactions.length)} עסקאות מתוך {filteredTransactions.length.toLocaleString()}
+        </p>
+      </div>
     </div>
   );
 };

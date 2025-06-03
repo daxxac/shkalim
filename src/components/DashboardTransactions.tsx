@@ -6,6 +6,7 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { TransactionFilters } from './TransactionFilters';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
 
 interface DateFilter {
   start?: Date;
@@ -16,7 +17,9 @@ interface DashboardTransactionsProps {
   limit?: number;
 }
 
-export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ limit = 10 }) => {
+const ITEMS_PER_PAGE = 20;
+
+export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ limit }) => {
   const { t } = useTranslation();
   const { transactions, categories, updateTransactionCategory } = useFinanceStore();
   const [searchText, setSearchText] = useState('');
@@ -24,6 +27,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   const [dateFilter, setDateFilter] = useState<DateFilter>({});
   const [incomeFilter, setIncomeFilter] = useState(false);
   const [expenseFilter, setExpenseFilter] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Set default date filter to current month
   useEffect(() => {
@@ -75,8 +79,19 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
       });
     }
 
-    return filtered.slice(0, limit);
-  }, [transactions, searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, limit]);
+    return filtered;
+  }, [transactions, searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedTransactions = limit ? filteredTransactions.slice(0, limit) : filteredTransactions.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter]);
 
   // Calculate stats for filtered period
   const stats = useMemo(() => {
@@ -123,7 +138,15 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return t('categories.other');
     const category = categories.find(c => c.id === categoryId);
-    return category ? t(`categories.${category.id}`) || category.name : t('categories.other');
+    if (category) {
+      const translatedName = t(`categories.${category.id}`);
+      // If translation is the same as the key, show the original name without kebab-case
+      if (translatedName === `categories.${category.id}`) {
+        return category.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      return translatedName;
+    }
+    return t('categories.other');
   };
 
   const getCategoryColor = (categoryId?: string) => {
@@ -189,7 +212,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
 
       {/* Transactions List */}
       <div className="space-y-3">
-        {filteredTransactions.map((transaction) => (
+        {paginatedTransactions.map((transaction) => (
           <Card key={transaction.id} className="premium-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -216,13 +239,13 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
                         borderColor: getCategoryColor(transaction.category) + '40'
                       }}
                     >
-                      <SelectValue placeholder={t('categories.other')} />
+                      <SelectValue placeholder={getCategoryName()} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">{t('categories.other')}</SelectItem>
                       {categories.map(category => (
                         <SelectItem key={category.id} value={category.id}>
-                          {t(`categories.${category.id}`) || category.name}
+                          {getCategoryName(category.id)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -247,7 +270,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         ))}
       </div>
 
-      {filteredTransactions.length === 0 && (
+      {paginatedTransactions.length === 0 && (
         <Card className="premium-card">
           <CardContent className="p-8 text-center">
             <p className="text-muted-foreground">{t('transactions.noTransactions')}</p>
@@ -255,11 +278,70 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         </Card>
       )}
 
-      {transactions.length > limit && (
+      {/* Pagination */}
+      {!limit && totalPages > 1 && (
+        <div className="flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+              
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <PaginationItem key={pageNum}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(pageNum)}
+                      isActive={currentPage === pageNum}
+                      className="cursor-pointer"
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+
+      {/* Results info */}
+      {!limit && (
         <Card className="premium-card">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              {t('transactions.showing')} {Math.min(limit, filteredTransactions.length)} {t('transactions.of')} {transactions.length.toLocaleString()}
+              Показано {startIndex + 1}-{Math.min(endIndex, filteredTransactions.length)} из {filteredTransactions.length.toLocaleString()} транзакций
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {limit && transactions.length > limit && (
+        <Card className="premium-card">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('transactions.showing')} {Math.min(limit, paginatedTransactions.length)} {t('transactions.of')} {transactions.length.toLocaleString()}
             </p>
           </CardContent>
         </Card>
