@@ -136,8 +136,8 @@ export const AutoSyncPanel: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{t('autoSync.title')}</h2>
-          <p className="text-gray-600">{t('autoSync.description')}</p>
+          <h2 className="text-2xl font-bold text-foreground">{t('autoSync.title')}</h2>
+          <p className="text-muted-foreground">{t('autoSync.description')}</p>
         </div>
         
         <Button onClick={() => setIsAddingAccount(true)} className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export const AutoSyncPanel: React.FC = () => {
       {isAddingAccount && (
         <Card>
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-foreground">
               {editingAccount ? 'Редактировать счет' : t('autoSync.addBank')}
             </CardTitle>
           </CardHeader>
@@ -238,14 +238,14 @@ export const AutoSyncPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div>
-                    <h3 className="font-medium">
+                    <h3 className="font-medium text-foreground">
                       {account.nickname || getBankName(account.bankType)}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {getBankName(account.bankType)} • {account.username}
                     </p>
                     {account.lastSync && (
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {t('autoSync.lastSync')}: {new Date(account.lastSync).toLocaleString()}
                       </p>
                     )}
@@ -294,7 +294,7 @@ export const AutoSyncPanel: React.FC = () => {
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">Банковские счета не добавлены</p>
+              <p className="text-muted-foreground mb-4">Банковские счета не добавлены</p>
               <Button onClick={() => setIsAddingAccount(true)}>
                 {t('autoSync.addBank')}
               </Button>
