@@ -2,11 +2,15 @@
 import React, { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
-import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Search } from 'lucide-react';
+import { TransactionFilters } from './TransactionFilters';
+
+interface DateFilter {
+  start?: Date;
+  end?: Date;
+}
 
 interface DashboardTransactionsProps {
   limit?: number;
@@ -16,7 +20,8 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   const { t } = useTranslation();
   const { transactions, categories, updateTransactionCategory } = useFinanceStore();
   const [searchText, setSearchText] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>({});
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -27,12 +32,30 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
       );
     }
 
-    if (categoryFilter && categoryFilter !== 'all') {
+    if (categoryFilter) {
       filtered = filtered.filter(t => t.category === categoryFilter);
     }
 
+    // Date filter
+    if (dateFilter.start || dateFilter.end) {
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.date);
+        const startDate = dateFilter.start;
+        const endDate = dateFilter.end;
+
+        if (startDate && endDate) {
+          return transactionDate >= startDate && transactionDate <= endDate;
+        } else if (startDate) {
+          return transactionDate >= startDate;
+        } else if (endDate) {
+          return transactionDate <= endDate;
+        }
+        return true;
+      });
+    }
+
     return filtered.slice(0, limit);
-  }, [transactions, searchText, categoryFilter, limit]);
+  }, [transactions, searchText, categoryFilter, dateFilter, limit]);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return t('categories.other');
@@ -48,32 +71,15 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder={t('transactions.search')}
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-          <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder={t('transactions.filter')} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t('categories.all')}</SelectItem>
-            {categories.map(category => (
-              <SelectItem key={category.id} value={category.id}>
-                {t(`categories.${category.id}`) || category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <TransactionFilters
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
+        categoryFilter={categoryFilter}
+        onCategoryFilterChange={setCategoryFilter}
+        categories={categories}
+      />
 
       {/* Transactions List */}
       <div className="space-y-3">
@@ -147,7 +153,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         <Card className="premium-card">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              {t('transactions.showing')} {Math.min(limit, transactions.length)} {t('transactions.of')} {transactions.length.toLocaleString()}
+              {t('transactions.showing')} {Math.min(limit, filteredTransactions.length)} {t('transactions.of')} {transactions.length.toLocaleString()}
             </p>
           </CardContent>
         </Card>

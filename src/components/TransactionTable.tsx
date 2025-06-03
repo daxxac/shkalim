@@ -1,14 +1,18 @@
 
 import React, { useState, useMemo } from 'react';
 import { useFinanceStore } from '../store/financeStore';
-import { FilterOptions } from '../types/finance';
-import { Search, Filter, ChevronDown } from 'lucide-react';
-import { Button } from './ui/button';
+import { TransactionFilters } from './TransactionFilters';
+
+interface DateFilter {
+  start?: Date;
+  end?: Date;
+}
 
 export const TransactionTable: React.FC = () => {
   const { transactions, categories, updateTransactionCategory } = useFinanceStore();
   const [searchText, setSearchText] = useState('');
-  const [filters, setFilters] = useState<FilterOptions>({});
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>({});
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
@@ -23,8 +27,26 @@ export const TransactionTable: React.FC = () => {
     }
 
     // Category filter
-    if (filters.category) {
-      filtered = filtered.filter(t => t.category === filters.category);
+    if (categoryFilter) {
+      filtered = filtered.filter(t => t.category === categoryFilter);
+    }
+
+    // Date filter
+    if (dateFilter.start || dateFilter.end) {
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.date);
+        const startDate = dateFilter.start;
+        const endDate = dateFilter.end;
+
+        if (startDate && endDate) {
+          return transactionDate >= startDate && transactionDate <= endDate;
+        } else if (startDate) {
+          return transactionDate >= startDate;
+        } else if (endDate) {
+          return transactionDate <= endDate;
+        }
+        return true;
+      });
     }
 
     // Sort
@@ -42,7 +64,7 @@ export const TransactionTable: React.FC = () => {
     });
 
     return filtered.slice(0, 100); // Limit for performance
-  }, [transactions, searchText, filters, sortBy, sortOrder]);
+  }, [transactions, searchText, categoryFilter, dateFilter, sortBy, sortOrder]);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'ללא קטגוריה';
@@ -57,36 +79,10 @@ export const TransactionTable: React.FC = () => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="p-6 border-b border-gray-200">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
           <h2 className="text-lg font-semibold text-gray-900">עסקאות אחרונות</h2>
           
           <div className="flex flex-col sm:flex-row gap-2">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="חיפוש..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
-              />
-            </div>
-
-            {/* Category Filter */}
-            <select
-              value={filters.category || ''}
-              onChange={(e) => setFilters({ ...filters, category: e.target.value || undefined })}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">כל הקטגוריות</option>
-              {categories.map(category => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-
             {/* Sort */}
             <select
               value={`${sortBy}-${sortOrder}`}
@@ -104,6 +100,17 @@ export const TransactionTable: React.FC = () => {
             </select>
           </div>
         </div>
+
+        {/* Filters */}
+        <TransactionFilters
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          categories={categories}
+        />
       </div>
 
       <div className="overflow-x-auto">
@@ -174,7 +181,7 @@ export const TransactionTable: React.FC = () => {
       {transactions.length > 100 && (
         <div className="p-4 text-center border-t border-gray-200">
           <p className="text-sm text-gray-500">
-            מוצגות 100 עסקאות ראשונות מתוך {transactions.length.toLocaleString()}
+            מוצגות {Math.min(100, filteredTransactions.length)} עסקאות ראשונות מתוך {transactions.length.toLocaleString()}
           </p>
         </div>
       )}
