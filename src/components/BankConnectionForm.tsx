@@ -84,8 +84,7 @@ export const BankConnectionForm: React.FC<BankConnectionFormProps> = ({
             <div>
               <Label htmlFor="bankType" className="flex items-center gap-2">
                 {t('autoSync.bankName')}
-                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" 
-                  title={t('autoSync.bankHelp')} />
+                <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
               </Label>
               <Select 
                 value={formData.bankType} 
