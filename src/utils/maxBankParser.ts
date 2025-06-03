@@ -58,6 +58,51 @@ const MAX_COLUMNS = {
   }
 };
 
+function parseMaxBankDate(dateValue: any): Date | null {
+  if (!dateValue) return null;
+  
+  let date: Date;
+  
+  if (typeof dateValue === 'string') {
+    // Handle different string date formats
+    const cleanDate = dateValue.trim();
+    
+    // Handle DD-MM-YYYY format
+    if (cleanDate.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      const [day, month, year] = cleanDate.split('-').map(Number);
+      date = new Date(year, month - 1, day);
+    }
+    // Handle DD/MM/YYYY format
+    else if (cleanDate.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      const [day, month, year] = cleanDate.split('/').map(Number);
+      date = new Date(year, month - 1, day);
+    }
+    // Handle YYYY-MM-DD format
+    else if (cleanDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      date = new Date(cleanDate);
+    }
+    // Handle other formats by trying direct parsing
+    else {
+      date = new Date(cleanDate);
+    }
+  } else if (typeof dateValue === 'number') {
+    // Excel date number
+    date = new Date((dateValue - 25569) * 86400 * 1000);
+  } else if (dateValue instanceof Date) {
+    date = dateValue;
+  } else {
+    return null;
+  }
+  
+  // Validate the parsed date
+  if (isNaN(date.getTime())) {
+    console.warn('Failed to parse date:', dateValue);
+    return null;
+  }
+  
+  return date;
+}
+
 export function parseMaxBankFile(arrayBuffer: ArrayBuffer, type: 'max-shekel' | 'max-foreign'): MaxBankTransaction[] {
   const data = new Uint8Array(arrayBuffer);
   const workbook = XLSX.read(data, { type: 'array' });
@@ -127,18 +172,9 @@ function parseMaxBankRow(row: any[], columnIndices: Record<string, number>, type
     return null;
   }
   
-  // Parse date
-  let date: Date;
-  if (typeof dateValue === 'string') {
-    date = new Date(dateValue);
-  } else if (typeof dateValue === 'number') {
-    // Excel date number
-    date = new Date((dateValue - 25569) * 86400 * 1000);
-  } else {
-    date = new Date(dateValue);
-  }
-  
-  if (isNaN(date.getTime())) {
+  // Parse date using improved function
+  const date = parseMaxBankDate(dateValue);
+  if (!date) {
     console.warn('Invalid date in MAX row:', dateValue);
     return null;
   }
