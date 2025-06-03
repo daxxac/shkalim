@@ -12,7 +12,7 @@ import {
   RotateCcw, 
   Download, 
   Lock,
-  LogOut 
+  Calendar
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
@@ -82,7 +82,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 premium-card">
+          <TabsList className="grid w-full grid-cols-5 premium-card">
             <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <BarChart3 className="h-4 w-4" />
               {t('navigation.dashboard')}
@@ -90,6 +90,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <TabsTrigger value="upload" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Upload className="h-4 w-4" />
               {t('navigation.upload')}
+            </TabsTrigger>
+            <TabsTrigger value="upcomingCharges" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Calendar className="h-4 w-4" />
+              {t('navigation.upcomingCharges')}
             </TabsTrigger>
             <TabsTrigger value="autoSync" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <RotateCcw className="h-4 w-4" />

@@ -12,6 +12,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar, DollarSign, CreditCard } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
+import { UpcomingCharges } from '../components/UpcomingCharges';
 
 const Index = () => {
   const { t } = useTranslation();
@@ -138,7 +139,7 @@ const Index = () => {
     );
   }
 
-  // Calculate dashboard stats
+  // Calculate dashboard stats - only use regular transactions, not upcoming charges
   const totalBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
   const currentMonth = new Date();
   const monthTransactions = transactions.filter(t => {
@@ -328,6 +329,10 @@ const Index = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === 'upcomingCharges' && (
+        <UpcomingCharges />
       )}
 
       {activeTab === 'settings' && (

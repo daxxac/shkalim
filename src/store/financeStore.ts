@@ -1,6 +1,7 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Transaction, BankType, Category } from '../types/finance';
+import { Transaction, BankType, Category, UpcomingCharge } from '../types/finance';
 import { encryptData, decryptData } from '../utils/encryption';
 import { parseFileData } from '../utils/fileParser';
 import { categorizeTransaction } from '../utils/categorization';
@@ -8,6 +9,7 @@ import Papa from 'papaparse';
 
 interface FinanceState {
   transactions: Transaction[];
+  upcomingCharges: UpcomingCharge[];
   categories: Category[];
   isLocked: boolean;
   isInitialized: boolean;
@@ -24,6 +26,7 @@ interface FinanceState {
   
   addTransactions: (file: File, bankType?: string) => Promise<void>;
   updateTransactionCategory: (id: string, categoryId: string) => void;
+  updateUpcomingChargeCategory: (id: string, categoryId: string) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
@@ -52,6 +55,7 @@ export const useFinanceStore = create<FinanceState>()(
   persist(
     (set, get) => ({
       transactions: [],
+      upcomingCharges: [],
       categories: defaultCategories,
       isLocked: true,
       isInitialized: false,
@@ -102,6 +106,7 @@ export const useFinanceStore = create<FinanceState>()(
       resetAllData: () => {
         set({ 
           transactions: [],
+          upcomingCharges: [],
           categories: defaultCategories
         });
       },
@@ -244,16 +249,46 @@ export const useFinanceStore = create<FinanceState>()(
       addTransactions: async (file: File, bankType?: string) => {
         try {
           const newTransactions = await parseFileData(file, bankType);
-          const { transactions, categories } = get();
+          const { transactions, upcomingCharges, categories } = get();
           
-          // Enhanced duplicate detection
+          // Separate upcoming charges from regular transactions
+          const regularTransactions = newTransactions.filter(t => 
+            !t.description.includes('עסקה עתידית') && 
+            !t.description.includes('חיוב עתידי') &&
+            !t.description.includes('תשלום מתוכנן')
+          );
+          
+          const futureCharges = newTransactions.filter(t => 
+            t.description.includes('עסקה עתידית') || 
+            t.description.includes('חיוב עתידי') ||
+            t.description.includes('תשלום מתוכנן')
+          ).map(t => ({
+            id: t.id,
+            date: t.date,
+            description: t.description,
+            amount: t.amount,
+            bank: t.bank,
+            category: categorizeTransaction(t, categories)
+          } as UpcomingCharge));
+          
+          // Enhanced duplicate detection for regular transactions
           const existingTransactionKeys = new Set(
             transactions.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
           );
           
-          const uniqueTransactions = newTransactions.filter(t => {
+          const uniqueTransactions = regularTransactions.filter(t => {
             const key = `${t.date}-${t.amount}-${t.description.substring(0, 50)}`;
             return !existingTransactionKeys.has(key);
+          });
+          
+          // Enhanced duplicate detection for upcoming charges
+          const existingChargeKeys = new Set(
+            upcomingCharges.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
+          );
+          
+          const uniqueCharges = futureCharges.filter(t => {
+            const key = `${t.date}-${t.amount}-${t.description.substring(0, 50)}`;
+            return !existingChargeKeys.has(key);
           });
           
           // Filter out duplicate credit card charges if we already have detailed transactions
@@ -278,10 +313,14 @@ export const useFinanceStore = create<FinanceState>()(
           set({ 
             transactions: [...transactions, ...categorizedTransactions].sort(
               (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            ),
+            upcomingCharges: [...upcomingCharges, ...uniqueCharges].sort(
+              (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
             )
           });
           
           console.log(`Added ${categorizedTransactions.length} new transactions`);
+          console.log(`Added ${uniqueCharges.length} new upcoming charges`);
         } catch (error) {
           console.error('Error adding transactions:', error);
           throw error;
@@ -291,6 +330,14 @@ export const useFinanceStore = create<FinanceState>()(
       updateTransactionCategory: (id: string, categoryId: string) => {
         set(state => ({
           transactions: state.transactions.map(t =>
+            t.id === id ? { ...t, category: categoryId } : t
+          )
+        }));
+      },
+
+      updateUpcomingChargeCategory: (id: string, categoryId: string) => {
+        set(state => ({
+          upcomingCharges: state.upcomingCharges.map(t =>
             t.id === id ? { ...t, category: categoryId } : t
           )
         }));
@@ -357,6 +404,7 @@ export const useFinanceStore = create<FinanceState>()(
       name: 'finance-storage',
       partialize: (state) => ({
         transactions: state.transactions,
+        upcomingCharges: state.upcomingCharges,
         categories: state.categories,
         masterPasswordHash: state.masterPasswordHash,
         currentLanguage: state.currentLanguage,

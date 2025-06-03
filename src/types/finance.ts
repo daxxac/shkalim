@@ -1,4 +1,3 @@
-
 export interface Transaction {
   id: string;
   date: string;
@@ -9,6 +8,16 @@ export interface Transaction {
   bank: BankType;
   reference?: string;
   location?: string;
+  type?: 'transaction' | 'upcoming_charge';
+}
+
+export interface UpcomingCharge {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  bank: BankType;
+  category?: string;
 }
 
 export interface Category {
