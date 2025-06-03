@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Transaction, BankType, Category } from '../types/finance';
@@ -130,6 +131,12 @@ export const useFinanceStore = create<FinanceState>()(
                 });
 
                 console.log('Categories mapping created:', categoriesMap);
+                console.log('Total transactions to process:', transactions.length);
+                
+                // Log first 10 transaction descriptions for debugging
+                console.log('Sample transaction descriptions:', 
+                  transactions.slice(0, 10).map(t => `"${t.description}"`)
+                );
 
                 // Update transactions with new categories
                 let updatedCount = 0;
@@ -150,6 +157,7 @@ export const useFinanceStore = create<FinanceState>()(
                     );
                     if (matchingKey) {
                       matchingCategory = categoriesMap[matchingKey];
+                      console.log(`Partial match found: "${transaction.description}" matched with "${matchingKey}" -> "${matchingCategory}"`);
                     }
                   }
                   
@@ -172,6 +180,8 @@ export const useFinanceStore = create<FinanceState>()(
                       
                       if (existingCategory) {
                         categoryId = existingCategory.id;
+                      } else {
+                        console.log(`No existing category found for: "${matchingCategory}"`);
                       }
                     }
                     
