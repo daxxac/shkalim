@@ -7,7 +7,6 @@ import { UploadZone } from '../components/UploadZone';
 import { TransactionTable } from '../components/TransactionTable';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { SecurityModal } from '../components/SecurityModal';
-import { AutoSyncPanel } from '../components/AutoSyncPanel';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Button } from '../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
@@ -27,7 +26,7 @@ const Index = () => {
   
   const [showSecurity, setShowSecurity] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('upload');
 
   useEffect(() => {
     initializeStore();
@@ -173,10 +172,9 @@ const Index = () => {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 premium-card">
+          <TabsList className="grid w-full grid-cols-2 premium-card">
             <TabsTrigger value="upload">{t('navigation.upload')}</TabsTrigger>
-            <TabsTrigger value="autoSync">{t('navigation.autoSync')}</TabsTrigger>
-            <TabsTrigger value="analytics">{t('categories.other')}</TabsTrigger>
+            <TabsTrigger value="analytics">{t('navigation.analytics')}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="upload" className="space-y-6">
@@ -189,10 +187,6 @@ const Index = () => {
                 <AnalyticsPanel />
               </div>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="autoSync">
-            <AutoSyncPanel />
           </TabsContent>
           
           <TabsContent value="analytics">

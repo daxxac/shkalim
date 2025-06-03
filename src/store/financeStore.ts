@@ -2,7 +2,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Transaction, BankType, Category } from '../types/finance';
-import { BankAccount } from '../types/banking';
 import { encryptData, decryptData } from '../utils/encryption';
 import { parseFileData } from '../utils/fileParser';
 import { categorizeTransaction } from '../utils/categorization';
@@ -10,7 +9,6 @@ import { categorizeTransaction } from '../utils/categorization';
 interface FinanceState {
   transactions: Transaction[];
   categories: Category[];
-  bankAccounts: BankAccount[];
   isLocked: boolean;
   isInitialized: boolean;
   masterPasswordHash: string | null;
@@ -25,16 +23,10 @@ interface FinanceState {
   setLanguage: (lang: 'ru' | 'en') => void;
   
   addTransactions: (file: File) => Promise<void>;
-  addTransactionsFromSync: (newTransactions: Transaction[]) => void;
   updateTransactionCategory: (id: string, categoryId: string) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
-  
-  // Bank accounts
-  addBankAccount: (account: Omit<BankAccount, 'id'>) => void;
-  updateBankAccount: (id: string, updates: Partial<BankAccount>) => void;
-  deleteBankAccount: (id: string) => void;
   
   getTransactionsByCategory: () => Record<string, Transaction[]>;
   getMonthlyBalance: () => Array<{month: string, balance: number}>;
@@ -57,7 +49,6 @@ export const useFinanceStore = create<FinanceState>()(
     (set, get) => ({
       transactions: [],
       categories: defaultCategories,
-      bankAccounts: [],
       isLocked: true,
       isInitialized: false,
       masterPasswordHash: null,
@@ -137,33 +128,6 @@ export const useFinanceStore = create<FinanceState>()(
         }
       },
 
-      addTransactionsFromSync: (newTransactions: Transaction[]) => {
-        const { transactions, categories } = get();
-        
-        // Remove duplicates based on date, amount, and description
-        const existingTransactionKeys = new Set(
-          transactions.map(t => `${t.date}-${t.amount}-${t.description}`)
-        );
-        
-        const uniqueTransactions = newTransactions.filter(t => 
-          !existingTransactionKeys.has(`${t.date}-${t.amount}-${t.description}`)
-        );
-        
-        // Auto-categorize new transactions
-        const categorizedTransactions = uniqueTransactions.map(transaction => ({
-          ...transaction,
-          category: categorizeTransaction(transaction, categories)
-        }));
-        
-        set({ 
-          transactions: [...transactions, ...categorizedTransactions].sort(
-            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-          )
-        });
-        
-        console.log(`Added ${categorizedTransactions.length} new transactions from sync`);
-      },
-
       updateTransactionCategory: (id: string, categoryId: string) => {
         set(state => ({
           transactions: state.transactions.map(t =>
@@ -193,31 +157,6 @@ export const useFinanceStore = create<FinanceState>()(
           transactions: state.transactions.map(t =>
             t.category === id ? { ...t, category: 'other' } : t
           )
-        }));
-      },
-
-      addBankAccount: (account) => {
-        const newAccount = { 
-          ...account, 
-          id: Date.now().toString(),
-          isActive: true 
-        };
-        set(state => ({
-          bankAccounts: [...state.bankAccounts, newAccount]
-        }));
-      },
-
-      updateBankAccount: (id: string, updates: Partial<BankAccount>) => {
-        set(state => ({
-          bankAccounts: state.bankAccounts.map(acc =>
-            acc.id === id ? { ...acc, ...updates } : acc
-          )
-        }));
-      },
-
-      deleteBankAccount: (id: string) => {
-        set(state => ({
-          bankAccounts: state.bankAccounts.filter(acc => acc.id !== id)
         }));
       },
 
@@ -259,7 +198,6 @@ export const useFinanceStore = create<FinanceState>()(
       partialize: (state) => ({
         transactions: state.transactions,
         categories: state.categories,
-        bankAccounts: state.bankAccounts,
         masterPasswordHash: state.masterPasswordHash,
         currentLanguage: state.currentLanguage,
       }),
