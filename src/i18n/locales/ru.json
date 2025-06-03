@@ -1,3 +1,4 @@
+
 {
   "navigation": {
     "dashboard": "Обзор",
@@ -8,14 +9,17 @@
     "transactions": "Транзакции",
     "upload": "Загрузить",
     "autoSync": "Авто-синхронизация",
-    "help": "Помощь"
+    "help": "Помощь",
+    "exportData": "Экспорт данных",
+    "lockSystem": "Заблокировать",
+    "analytics": "Аналитика"
   },
   "dashboard": {
     "title": "Панель управления",
     "welcome": "Добро пожаловать в SHKALIM",
     "loading": "Загрузка...",
     "totalTransactions": "Всего транзакций",
-    "monthTransactions": "Транзакций в этом месяце",
+    "monthTransactions": "Этот месяц",
     "currentBalance": "Текущий баланс"
   },
   "transactions": {
@@ -125,7 +129,7 @@
     "bills": "Счета",
     "education": "Образование",
     "travel": "Путешествия",
-    "salary": "Зарплата",
+    "salary": "Доходы",
     "other": "Другое"
   }
 }

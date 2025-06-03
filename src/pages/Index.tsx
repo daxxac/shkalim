@@ -9,8 +9,8 @@ import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { SecurityModal } from '../components/SecurityModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Button } from '../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Shield, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 const Index = () => {
@@ -26,7 +26,7 @@ const Index = () => {
   
   const [showSecurity, setShowSecurity] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
-  const [activeTab, setActiveTab] = useState('upload');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     initializeStore();
@@ -138,62 +138,161 @@ const Index = () => {
     );
   }
 
+  // Calculate dashboard stats
+  const totalBalance = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const currentMonth = new Date();
+  const monthTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.date);
+    return transactionDate.getMonth() === currentMonth.getMonth() && 
+           transactionDate.getFullYear() === currentMonth.getFullYear();
+  });
+  
+  const monthIncome = monthTransactions
+    .filter(t => t.amount > 0)
+    .reduce((sum, t) => sum + t.amount, 0);
+    
+  const monthExpenses = Math.abs(monthTransactions
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0));
+
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      <div className="space-y-6">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="stats-card">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.totalTransactions')}</h3>
-            <p className="text-3xl font-bold text-foreground">{transactions.length.toLocaleString()}</p>
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6">
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Total Balance */}
+            <Card className="premium-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('dashboard.currentBalance')}
+                </CardTitle>
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ₪{totalBalance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {totalBalance >= 0 ? t('categories.salary') : t('navigation.expenses')}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Total Transactions */}
+            <Card className="premium-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('dashboard.totalTransactions')}
+                </CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-foreground">
+                  {transactions.length.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('transactions.recentTransactions')}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Month Income */}
+            <Card className="premium-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('navigation.income')}
+                </CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  ₪{monthIncome.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('dashboard.monthTransactions')}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Month Expenses */}
+            <Card className="premium-card">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t('navigation.expenses')}
+                </CardTitle>
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  ₪{monthExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t('dashboard.monthTransactions')}
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          
-          <div className="stats-card">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.currentBalance')}</h3>
-            <p className="text-3xl font-bold text-green-600">
-              ₪{transactions
-                .reduce((sum, t) => sum + t.amount, 0)
-                .toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          
-          <div className="stats-card">
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.monthTransactions')}</h3>
-            <p className="text-3xl font-bold text-primary">
-              {transactions.filter(t => {
-                const now = new Date();
-                const transactionDate = new Date(t.date);
-                return transactionDate.getMonth() === now.getMonth() && 
-                       transactionDate.getFullYear() === now.getFullYear();
-              }).length}
-            </p>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Recent Transactions */}
+            <div className="lg:col-span-2">
+              <Card className="premium-card">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold text-foreground">
+                    {t('transactions.recentTransactions')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TransactionTable limit={10} />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Analytics Panel */}
+            <div>
+              <AnalyticsPanel />
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 premium-card">
-            <TabsTrigger value="upload">{t('navigation.upload')}</TabsTrigger>
-            <TabsTrigger value="analytics">{t('navigation.analytics')}</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="upload" className="space-y-6">
-            <UploadZone />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <TransactionTable />
-              </div>
-              <div>
-                <AnalyticsPanel />
-              </div>
+      {activeTab === 'upload' && (
+        <div className="space-y-6">
+          <UploadZone />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <TransactionTable />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="analytics">
-            <AnalyticsPanel />
-          </TabsContent>
-        </Tabs>
-      </div>
+            <div>
+              <AnalyticsPanel />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'autoSync' && (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            {t('autoSync.title')}
+          </h2>
+          <p className="text-muted-foreground">
+            {t('autoSync.description')}
+          </p>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold text-foreground mb-4">
+            {t('settings.title')}
+          </h2>
+          <p className="text-muted-foreground">
+            {t('settings.data')}
+          </p>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

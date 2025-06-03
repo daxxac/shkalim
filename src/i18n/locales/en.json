@@ -9,14 +9,17 @@
     "transactions": "Transactions",
     "upload": "Upload",
     "autoSync": "Auto Sync",
-    "help": "Help"
+    "help": "Help",
+    "exportData": "Export Data",
+    "lockSystem": "Lock System",
+    "analytics": "Analytics"
   },
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome to SHKALIM",
     "loading": "Loading...",
     "totalTransactions": "Total Transactions",
-    "monthTransactions": "This Month's Transactions",
+    "monthTransactions": "This Month",
     "currentBalance": "Current Balance"
   },
   "transactions": {
@@ -130,7 +133,7 @@
     "bills": "Bills",
     "education": "Education",
     "travel": "Travel",
-    "salary": "Salary",
+    "salary": "Income",
     "other": "Other"
   }
 }
