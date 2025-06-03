@@ -236,9 +236,14 @@ const Index = () => {
 
         {showSecurity && (
           <SecurityModal
+            mode="set" // Указываем режим для установки нового пароля
             onClose={() => setShowSecurity(false)}
-            onPasswordSet={(password) => {
-              setShowSecurity(false);
+            onSuccess={() => {
+              toast({
+                title: t('auth.passwordSetTitle'),
+                description: t('auth.passwordSetDescription'),
+              });
+              // setShowSecurity(false); // onClose уже это делает
             }}
           />
         )}

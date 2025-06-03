@@ -14,9 +14,12 @@ interface FinanceState {
   isLocked: boolean;
   isInitialized: boolean;
   masterPasswordHash: string | null;
+  encryptedDataBlob: string | null; // Для хранения зашифрованных данных
+  _currentPasswordInMemory: string | null; // Временное хранение пароля в памяти
   currentLanguage: 'ru' | 'en';
   
   // Actions
+  _updateEncryptedBlob: () => Promise<void>; // Внутренний хелпер, но должен быть в типе для get()
   initializeStore: () => void;
   unlock: (password: string) => Promise<void>;
   lock: () => void;
@@ -57,45 +60,171 @@ export const useFinanceStore = create<FinanceState>()(
       transactions: [],
       upcomingCharges: [],
       categories: defaultCategories,
-      isLocked: true,
+      isLocked: true, // По умолчанию заблокировано
       isInitialized: false,
       masterPasswordHash: null,
+      encryptedDataBlob: null, // Начальное значение для зашифрованных данных
+      _currentPasswordInMemory: null, // Временное хранение пароля в памяти, не персистентное
       currentLanguage: 'ru',
 
-      initializeStore: () => {
+      // Внутренняя функция для обновления зашифрованного блока данных
+      _updateEncryptedBlob: async () => {
         const state = get();
-        const hasPassword = !!state.masterPasswordHash;
-        set({ isInitialized: true, isLocked: hasPassword });
+        if (!state.isLocked && state._currentPasswordInMemory) {
+          const sensitiveData = {
+            transactions: state.transactions,
+            upcomingCharges: state.upcomingCharges,
+            categories: state.categories,
+          };
+          try {
+            const newEncryptedBlob = await encryptData(sensitiveData, state._currentPasswordInMemory);
+            set({ encryptedDataBlob: newEncryptedBlob });
+          } catch (error) {
+            console.error("Encryption failed during data update:", error);
+            // Рассмотреть возможность блокировки хранилища или уведомления пользователя
+            set({ isLocked: true, _currentPasswordInMemory: null }); // Блокируем в случае ошибки шифрования
+          }
+        }
+      },
+
+      initializeStore: () => {
+        // Эта функция вызывается после ре-гидратации состояния из localStorage
+        const state = get();
+        // Если masterPasswordHash существует, приложение должно быть заблокировано
+        // Если masterPasswordHash отсутствует (первый запуск или сброс), оно не "заблокировано" паролем
+        const shouldBeLocked = !!state.masterPasswordHash;
+        set({ isInitialized: true, isLocked: shouldBeLocked });
+        
+        // Если не заблокировано и нет пароля (например, первый запуск без пароля),
+        // и есть данные в encryptedDataBlob (маловероятно, но для полноты), их нужно очистить,
+        // так как нет пароля для их расшифровки или перешифровки.
+        // Однако, если нет masterPasswordHash, то и encryptedDataBlob должен быть null по логике setMasterPassword.
+        // Если же masterPasswordHash есть, но isLocked оказалось false (не должно быть при корректной инициализации),
+        // то это тоже странная ситуация.
+        // Основная логика разблокировки и загрузки данных будет в unlock().
       },
 
       unlock: async (password: string) => {
         const state = get();
-        
+
         if (!state.masterPasswordHash) {
-          // First time setup
-          const hash = await hashPassword(password);
-          set({ masterPasswordHash: hash, isLocked: false });
+          // Пароль не установлен. Позволяем "войти" в приложение с пустыми/дефолтными данными.
+          // Шифрования/дешифрования нет.
+          set({
+            isLocked: false,
+            _currentPasswordInMemory: null, // Пароля нет
+            // Убедимся, что данные в состоянии по умолчанию, если они не были загружены
+            transactions: state.transactions.length > 0 ? state.transactions : [], // или defaultTransactions
+            upcomingCharges: state.upcomingCharges.length > 0 ? state.upcomingCharges : [], // или defaultUpcomingCharges
+            categories: state.categories.length > 0 ? state.categories : defaultCategories,
+          });
           return;
         }
-        
+
         const isValid = await verifyPassword(password, state.masterPasswordHash);
         if (!isValid) {
           throw new Error('Invalid password');
         }
-        
-        set({ isLocked: false });
+
+        if (state.encryptedDataBlob) {
+          try {
+            const decrypted = await decryptData(state.encryptedDataBlob, password);
+            set({
+              transactions: decrypted.transactions || [],
+              upcomingCharges: decrypted.upcomingCharges || [],
+              categories: decrypted.categories || defaultCategories,
+              isLocked: false,
+              _currentPasswordInMemory: password,
+            });
+          } catch (error) {
+            console.error("Decryption failed during unlock:", error);
+            // Важно не разблокировать и не загружать данные при ошибке дешифровки.
+            // Можно также сбросить _currentPasswordInMemory, но isLocked уже true или станет при ошибке.
+            set({ isLocked: true, _currentPasswordInMemory: null });
+            throw new Error('Decryption failed. Data might be corrupted or password was changed.');
+          }
+        } else {
+          // Пароль верный, но зашифрованного блока нет (например, сразу после setMasterPassword, до изменений данных)
+          // Или если данные были сброшены, а пароль остался.
+          set({
+            isLocked: false,
+            _currentPasswordInMemory: password,
+            // Убедимся, что данные в состоянии по умолчанию
+            transactions: [],
+            upcomingCharges: [],
+            categories: defaultCategories,
+          });
+        }
       },
 
-      lock: () => set({ isLocked: true }),
+      lock: () => {
+        set({
+          isLocked: true,
+          _currentPasswordInMemory: null,
+          // Очищаем чувствительные данные из оперативной памяти
+          transactions: [],
+          upcomingCharges: [],
+          // Категории можно оставить defaultCategories, т.к. они не так чувствительны,
+          // либо тоже очищать в [], если требуется максимальная секьюрность.
+          // Оставим defaultCategories для удобства, если пользователь просто блокирует/разблокирует.
+          categories: defaultCategories,
+        });
+      },
 
       setMasterPassword: async (password: string) => {
-        const hash = await hashPassword(password);
-        set({ masterPasswordHash: hash });
+        const state = get();
+        if (state.masterPasswordHash) {
+          // TODO: В будущем здесь может быть логика смены пароля,
+          // которая потребует старый пароль для расшифровки и перешифровки данных.
+          // Пока что просто запрещаем установку нового, если уже есть.
+          throw new Error("Master password is already set. Use 'change password' functionality (not implemented yet).");
+        }
+
+        const newHash = await hashPassword(password);
+        const sensitiveData = {
+          transactions: state.transactions, // На момент первой установки это будут дефолтные/пустые данные
+          upcomingCharges: state.upcomingCharges,
+          categories: state.categories,
+        };
+
+        try {
+          const newEncryptedBlob = await encryptData(sensitiveData, password);
+          set({
+            masterPasswordHash: newHash,
+            encryptedDataBlob: newEncryptedBlob,
+            isLocked: false, // Разблокируем после установки пароля
+            _currentPasswordInMemory: password,
+          });
+        } catch (error) {
+          console.error("Encryption failed during initial password setup:", error);
+          // Сбрасываем попытку установки пароля, если шифрование не удалось
+          set({ masterPasswordHash: null, encryptedDataBlob: null, isLocked: true, _currentPasswordInMemory: null });
+          throw new Error("Failed to set up master password due to encryption error.");
+        }
       },
 
       panicMode: () => {
-        localStorage.clear();
-        indexedDB.deleteDatabase('finance-app');
+        // Очищаем все из localStorage, где persist хранит свои данные
+        localStorage.removeItem('finance-storage'); // Имя из persist config
+
+        // Если вы используете indexedDB для чего-то еще специфичного для finance-app,
+        // и persist middleware настроен на indexedDB (по умолчанию это localStorage).
+        // indexedDB.deleteDatabase('finance-app'); // Раскомментировать, если persist использует indexedDB
+
+        // Сбрасываем состояние Zustand к исходному, включая все чувствительные данные
+        set({
+          transactions: [],
+          upcomingCharges: [],
+          categories: defaultCategories,
+          isLocked: true, // После паники приложение должно быть заблокировано (и без пароля)
+          isInitialized: false, // Потребуется реинициализация
+          masterPasswordHash: null,
+          encryptedDataBlob: null, // Очищаем зашифрованные данные
+          _currentPasswordInMemory: null,
+          // currentLanguage можно оставить или сбросить к дефолтному, например 'ru'
+          currentLanguage: 'ru',
+        });
+        // Перезагрузка страницы для чистого старта и применения сброшенного состояния
         window.location.reload();
       },
 
@@ -103,12 +232,16 @@ export const useFinanceStore = create<FinanceState>()(
         set({ currentLanguage: lang });
       },
 
-      resetAllData: () => {
-        set({ 
+      resetAllData: async () => { // Делаем async для вызова _updateEncryptedBlob
+        set({
           transactions: [],
           upcomingCharges: [],
-          categories: defaultCategories
+          categories: defaultCategories,
+          // masterPasswordHash и encryptedDataBlob НЕ сбрасываются здесь.
+          // Это действие только для данных пользователя, не для настроек безопасности.
         });
+        // После сброса данных, если приложение разблокировано, нужно обновить зашифрованный блоб.
+        await get()._updateEncryptedBlob();
       },
 
       uploadCategoriesCSV: async (file: File) => {
@@ -117,14 +250,22 @@ export const useFinanceStore = create<FinanceState>()(
             header: true,
             skipEmptyLines: true,
             encoding: 'UTF-8',
-            complete: (result) => {
+            complete: async (result) => { // Делаем колбэк асинхронным
               try {
                 const { transactions, categories } = get();
                 const categoriesMap: Record<string, string> = {};
                 const newCategoriesToCreate: Set<string> = new Set();
                 
                 // Parse CSV data to create mapping
-                result.data.forEach((row: any) => {
+                interface CsvRow {
+                  'транзакция'?: string;
+                  'transaction'?: string;
+                  'description'?: string;
+                  'категория'?: string;
+                  'category'?: string;
+                  [key: string]: string | number | boolean | null | undefined; // Для других возможных столбцов
+                }
+                result.data.forEach((row: CsvRow) => {
                   const transaction = row['транзакция'] || row['transaction'] || row['description'];
                   const category = row['категория'] || row['category'];
                   
@@ -232,9 +373,10 @@ export const useFinanceStore = create<FinanceState>()(
                 // Update store with new categories and updated transactions
                 set({ 
                   categories: [...categories, ...categoriesToAdd],
-                  transactions: updatedTransactions 
+                  transactions: updatedTransactions
                 });
-                
+                // После обновления состояния, перешифровываем данные
+                await get()._updateEncryptedBlob();
                 resolve();
               } catch (error) {
                 console.error('Error processing categories CSV:', error);
@@ -310,50 +452,58 @@ export const useFinanceStore = create<FinanceState>()(
           
           console.log(`Added ${categorizedNewTransactions.length} new transactions to main list.`);
           console.log(`Added ${uniqueNewUpcomingCharges.length} new upcoming charges.`);
+          
+          // После обновления состояния, перешифровываем данные
+          await get()._updateEncryptedBlob();
         } catch (error) {
           console.error('Error adding transactions:', error);
           throw error;
         }
       },
 
-      updateTransactionCategory: (id: string, categoryId: string) => {
+      updateTransactionCategory: async (id: string, categoryId: string) => {
         set(state => ({
           transactions: state.transactions.map(t =>
             t.id === id ? { ...t, category: categoryId } : t
           )
         }));
+        await get()._updateEncryptedBlob();
       },
 
-      updateUpcomingChargeCategory: (id: string, categoryId: string) => {
+      updateUpcomingChargeCategory: async (id: string, categoryId: string) => {
         set(state => ({
           upcomingCharges: state.upcomingCharges.map(t =>
             t.id === id ? { ...t, category: categoryId } : t
           )
         }));
+        await get()._updateEncryptedBlob();
       },
 
-      addCategory: (category) => {
+      addCategory: async (category: Omit<Category, 'id'>) => { // Добавил тип для category
         const newCategory = { ...category, id: Date.now().toString() };
         set(state => ({
           categories: [...state.categories, newCategory]
         }));
+        await get()._updateEncryptedBlob();
       },
 
-      updateCategory: (id: string, updates: Partial<Category>) => {
+      updateCategory: async (id: string, updates: Partial<Category>) => {
         set(state => ({
           categories: state.categories.map(c =>
             c.id === id ? { ...c, ...updates } : c
           )
         }));
+        await get()._updateEncryptedBlob();
       },
 
-      deleteCategory: (id: string) => {
+      deleteCategory: async (id: string) => {
         set(state => ({
           categories: state.categories.filter(c => c.id !== id),
           transactions: state.transactions.map(t =>
             t.category === id ? { ...t, category: 'other' } : t
           )
         }));
+        await get()._updateEncryptedBlob();
       },
 
       getTransactionsByCategory: () => {
@@ -390,14 +540,22 @@ export const useFinanceStore = create<FinanceState>()(
       },
     }),
     {
-      name: 'finance-storage',
+      name: 'finance-storage', // Имя хранилища в localStorage
       partialize: (state) => ({
-        transactions: state.transactions,
-        upcomingCharges: state.upcomingCharges,
-        categories: state.categories,
+        // Сохраняем только masterPasswordHash, encryptedDataBlob и нечувствительные данные
         masterPasswordHash: state.masterPasswordHash,
+        encryptedDataBlob: state.encryptedDataBlob,
         currentLanguage: state.currentLanguage,
+        // transactions, upcomingCharges, categories НЕ сохраняются напрямую
       }),
+      // onRehydrateStorage можно использовать для дополнительной логики после загрузки,
+      // но initializeStore уже вызывается и обрабатывает isLocked.
+      // onRehydrateStorage: () => (state, error) => {
+      //   if (state) {
+      //     state.isInitialized = true;
+      //     state.isLocked = !!state.masterPasswordHash;
+      //   }
+      // }
     }
   )
 );

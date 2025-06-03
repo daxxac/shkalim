@@ -12,7 +12,9 @@
     "panicMode": "Panic Mode",
     "confirmDelete": "Are you sure? This will delete ALL data without recovery!",
     "dataDeleted": "Data deleted",
-    "allDataDeleted": "All data has been permanently deleted"
+    "allDataDeleted": "All data has been permanently deleted",
+    "passwordSetTitle": "Password Set",
+    "passwordSetDescription": "Your password has been successfully set."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -111,7 +113,15 @@
     "importantRemember": "Important: Remember this password!",
     "noRecovery": "There is no way to recover a forgotten password",
     "cancel": "Cancel",
-    "setPassword": "Set Password"
+    "setPassword": "Set Password",
+    "passwordMinLength": "Password must be at least 8 characters long.",
+    "passwordMismatch": "Passwords do not match.",
+    "unknownError": "An unknown error occurred. Please try again.",
+    "unlockError": "Unlock error. Please try again.",
+    "unlockTitle": "Unlock Access",
+    "unlockButton": "Unlock",
+    "passwordLabel": "Password",
+    "processing": "Processing..."
   },
   "autoSync": {
     "title": "Auto Sync",
