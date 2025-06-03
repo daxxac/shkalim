@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Transaction, BankType, Category } from '../types/finance';
@@ -117,6 +116,7 @@ export const useFinanceStore = create<FinanceState>()(
               try {
                 const { transactions, categories } = get();
                 const categoriesMap: Record<string, string> = {};
+                const newCategoriesToCreate: Set<string> = new Set();
                 
                 // Parse CSV data to create mapping
                 result.data.forEach((row: any) => {
@@ -127,6 +127,9 @@ export const useFinanceStore = create<FinanceState>()(
                     // Store both exact match and lowercase for flexible matching
                     categoriesMap[transaction.trim()] = category.trim();
                     categoriesMap[transaction.toLowerCase().trim()] = category.trim();
+                    
+                    // Collect unique category names for potential creation
+                    newCategoriesToCreate.add(category.trim());
                   }
                 });
 
@@ -137,6 +140,42 @@ export const useFinanceStore = create<FinanceState>()(
                 console.log('Sample transaction descriptions:', 
                   transactions.slice(0, 10).map(t => `"${t.description}"`)
                 );
+
+                // Create missing categories
+                const existingCategoryNames = new Set(categories.map(c => c.name.toLowerCase()));
+                const existingCategoryIds = new Set(categories.map(c => c.id.toLowerCase()));
+                
+                const categoriesToAdd: Category[] = [];
+                const categoryNameToId: Record<string, string> = {};
+                
+                // Map existing categories
+                categories.forEach(cat => {
+                  categoryNameToId[cat.name.toLowerCase()] = cat.id;
+                  categoryNameToId[cat.id.toLowerCase()] = cat.id;
+                });
+                
+                newCategoriesToCreate.forEach(categoryName => {
+                  const lowerCaseName = categoryName.toLowerCase();
+                  
+                  // Skip if category already exists
+                  if (existingCategoryNames.has(lowerCaseName) || existingCategoryIds.has(lowerCaseName)) {
+                    return;
+                  }
+                  
+                  // Create new category
+                  const categoryId = categoryName.toLowerCase().replace(/[^a-zа-я0-9]/g, '_');
+                  const newCategory: Category = {
+                    id: categoryId,
+                    name: categoryName,
+                    color: getRandomColor(),
+                    rules: []
+                  };
+                  
+                  categoriesToAdd.push(newCategory);
+                  categoryNameToId[lowerCaseName] = categoryId;
+                  
+                  console.log(`Creating new category: "${categoryName}" with id: "${categoryId}"`);
+                });
 
                 // Update transactions with new categories
                 let updatedCount = 0;
@@ -162,27 +201,13 @@ export const useFinanceStore = create<FinanceState>()(
                   }
                   
                   if (matchingCategory) {
-                    // Handle special categories
-                    let categoryId = 'other';
+                    // Find category ID by name or existing mapping
+                    let categoryId = categoryNameToId[matchingCategory.toLowerCase()];
                     
-                    if (matchingCategory === '7gens') {
-                      categoryId = 'other'; // or create a specific category for 7gens
-                    } else if (matchingCategory === 'Google StoryMatrix') {
-                      categoryId = 'other'; // or create a specific category
-                    } else if (matchingCategory === '???') {
+                    if (!categoryId) {
+                      // Fallback to 'other' if still not found
                       categoryId = 'other';
-                    } else {
-                      // Try to find existing category by name
-                      const existingCategory = categories.find(c => 
-                        c.name.toLowerCase() === matchingCategory.toLowerCase() ||
-                        c.id.toLowerCase() === matchingCategory.toLowerCase()
-                      );
-                      
-                      if (existingCategory) {
-                        categoryId = existingCategory.id;
-                      } else {
-                        console.log(`No existing category found for: "${matchingCategory}"`);
-                      }
+                      console.log(`Fallback to 'other' for category: "${matchingCategory}"`);
                     }
                     
                     if (transaction.category !== categoryId) {
@@ -196,8 +221,15 @@ export const useFinanceStore = create<FinanceState>()(
                   return transaction;
                 });
 
+                console.log(`Created ${categoriesToAdd.length} new categories`);
                 console.log(`Updated ${updatedCount} transactions with categories from CSV`);
-                set({ transactions: updatedTransactions });
+                
+                // Update store with new categories and updated transactions
+                set({ 
+                  categories: [...categories, ...categoriesToAdd],
+                  transactions: updatedTransactions 
+                });
+                
                 resolve();
               } catch (error) {
                 console.error('Error processing categories CSV:', error);
@@ -332,6 +364,17 @@ export const useFinanceStore = create<FinanceState>()(
     }
   )
 );
+
+// Helper function to generate random colors for new categories
+function getRandomColor(): string {
+  const colors = [
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', 
+    '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
+    '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
+    '#ec4899', '#f43f5e'
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
 
 // Helper functions for password hashing
 async function hashPassword(password: string): Promise<string> {
