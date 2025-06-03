@@ -63,10 +63,10 @@ const Index = () => {
 
   if (!isInitialized) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t('dashboard.loading')}</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -74,17 +74,17 @@ const Index = () => {
 
   if (isLocked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full mx-4">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="premium-card p-8 max-w-md w-full mx-4">
           <div className="absolute top-4 right-4">
             <LanguageSwitcher />
           </div>
           
           <div className="text-center mb-6">
-            <Shield className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">SHKALIM</h1>
-            <p className="text-xs text-gray-400 mb-4">by daxxac</p>
-            <p className="text-gray-600">{t('auth.enterPassword')}</p>
+            <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">SHKALIM</h1>
+            <p className="text-xs text-muted-foreground mb-4">by daxxac</p>
+            <p className="text-muted-foreground">{t('auth.enterPassword')}</p>
           </div>
           
           <div className="space-y-4">
@@ -93,19 +93,19 @@ const Index = () => {
               value={masterPassword}
               onChange={(e) => setMasterPassword(e.target.value)}
               placeholder={t('auth.masterPassword')}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+              className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-right bg-background text-foreground"
               onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
             />
             
             <Button 
               onClick={handleUnlock} 
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full premium-button"
               disabled={!masterPassword}
             >
               {t('auth.unlock')}
             </Button>
             
-            <div className="flex justify-between items-center pt-4 border-t">
+            <div className="flex justify-between items-center pt-4 border-t border-border">
               <Button
                 variant="outline"
                 onClick={() => setShowSecurity(true)}
@@ -144,13 +144,13 @@ const Index = () => {
       <div className="space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.totalTransactions')}</h3>
-            <p className="text-3xl font-bold text-gray-900">{transactions.length.toLocaleString()}</p>
+          <div className="stats-card">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.totalTransactions')}</h3>
+            <p className="text-3xl font-bold text-foreground">{transactions.length.toLocaleString()}</p>
           </div>
           
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.currentBalance')}</h3>
+          <div className="stats-card">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.currentBalance')}</h3>
             <p className="text-3xl font-bold text-green-600">
               ₪{transactions
                 .reduce((sum, t) => sum + t.amount, 0)
@@ -158,9 +158,9 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.monthTransactions')}</h3>
-            <p className="text-3xl font-bold text-blue-600">
+          <div className="stats-card">
+            <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('dashboard.monthTransactions')}</h3>
+            <p className="text-3xl font-bold text-primary">
               {transactions.filter(t => {
                 const now = new Date();
                 const transactionDate = new Date(t.date);
@@ -173,7 +173,7 @@ const Index = () => {
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3 premium-card">
             <TabsTrigger value="upload">{t('navigation.upload')}</TabsTrigger>
             <TabsTrigger value="autoSync">{t('navigation.autoSync')}</TabsTrigger>
             <TabsTrigger value="analytics">{t('categories.other')}</TabsTrigger>

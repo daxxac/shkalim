@@ -37,28 +37,28 @@ export const AnalyticsPanel: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="premium-card p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">
           {t('dashboard.currentBalance')}
         </h3>
         
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">{t('categories.salary')}:</span>
+            <span className="text-muted-foreground">{t('categories.salary')}:</span>
             <span className="font-bold text-green-600">
               ₪{totalIncome.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">{t('upload.error')}:</span>
+            <span className="text-muted-foreground">{t('upload.error')}:</span>
             <span className="font-bold text-red-600">
               ₪{totalExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
             </span>
           </div>
           
-          <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-            <span className="text-gray-900 font-medium">{t('dashboard.currentBalance')}:</span>
+          <div className="flex justify-between items-center pt-2 border-t border-border">
+            <span className="text-foreground font-medium">{t('dashboard.currentBalance')}:</span>
             <span className={`font-bold text-lg ${
               totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>
@@ -69,8 +69,8 @@ export const AnalyticsPanel: React.FC = () => {
       </div>
 
       {/* Expenses by Category */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="premium-card p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">
           {t('categories.other')}
         </h3>
         
@@ -112,13 +112,13 @@ export const AnalyticsPanel: React.FC = () => {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span className="text-sm text-gray-700">{item.name}</span>
+                      <span className="text-sm text-muted-foreground">{item.name}</span>
                     </div>
                     <div className="text-left">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-foreground">
                         ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-muted-foreground">
                         {percentage.toFixed(1)}%
                       </div>
                     </div>
@@ -128,15 +128,15 @@ export const AnalyticsPanel: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             <p>{t('upload.error')}</p>
           </div>
         )}
       </div>
 
       {/* Monthly Balance Trend */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="premium-card p-6">
+        <h3 className="text-lg font-semibold text-foreground mb-4">
           {t('dashboard.monthTransactions')}
         </h3>
         
@@ -161,14 +161,14 @@ export const AnalyticsPanel: React.FC = () => {
                 />
                 <Bar 
                   dataKey="balance" 
-                  fill="#3b82f6"
+                  fill="hsl(var(--primary))"
                   radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             <p>{t('upload.error')}</p>
           </div>
         )}
