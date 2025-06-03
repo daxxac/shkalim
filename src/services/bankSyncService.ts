@@ -55,3 +55,8 @@ class BankSyncService {
 }
 
 export const bankSyncService = new BankSyncService();
+
+// Экспортируем функцию для обратной совместимости
+export const syncBankAccount = (account: BankAccount): Promise<SyncResult> => {
+  return bankSyncService.mockSync(account);
+};

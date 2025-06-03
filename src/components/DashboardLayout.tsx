@@ -40,7 +40,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <BarChart3 className="h-8 w-8 text-blue-600 mr-3" />
+              <img 
+                src="/lovable-uploads/bed35785-60af-499c-bacb-f1cfc5f58db7.png" 
+                alt="SHKALIM Logo" 
+                className="h-8 w-8 mr-3"
+              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
                   SHKALIM

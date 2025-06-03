@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
@@ -26,7 +25,8 @@ export const AutoSyncPanel: React.FC = () => {
     bankType: '' as BankType,
     username: '',
     password: '',
-    nickname: ''
+    nickname: '',
+    isActive: true
   });
 
   const resetForm = () => {
@@ -34,7 +34,8 @@ export const AutoSyncPanel: React.FC = () => {
       bankType: '' as BankType,
       username: '',
       password: '',
-      nickname: ''
+      nickname: '',
+      isActive: true
     });
     setIsAddingAccount(false);
     setEditingAccount(null);
@@ -77,7 +78,8 @@ export const AutoSyncPanel: React.FC = () => {
       bankType: account.bankType,
       username: account.username,
       password: account.password,
-      nickname: account.nickname || ''
+      nickname: account.nickname || '',
+      isActive: account.isActive
     });
     setEditingAccount(account.id);
     setIsAddingAccount(true);
