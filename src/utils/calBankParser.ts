@@ -38,11 +38,12 @@ export function parseCalBankFile(arrayBuffer: ArrayBuffer): CalBankTransaction[]
   
   const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
   
-  if (jsonData.length < 2) {
+  if (jsonData.length < 3) {
     throw new Error('No data found in CAL file');
   }
   
-  const headers = jsonData[0] as string[];
+  // CAL files have headers in the second row (index 1), not the first
+  const headers = jsonData[1] as string[];
   
   console.log('CAL Bank headers found:', headers);
   
@@ -59,7 +60,8 @@ export function parseCalBankFile(arrayBuffer: ArrayBuffer): CalBankTransaction[]
   
   const transactions: CalBankTransaction[] = [];
   
-  for (let i = 1; i < jsonData.length; i++) {
+  // Start from row 2 (index 2) since headers are in row 1 (index 1)
+  for (let i = 2; i < jsonData.length; i++) {
     const row = jsonData[i] as any[];
     
     if (!row || row.length === 0) continue;
