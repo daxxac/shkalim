@@ -1,15 +1,17 @@
-
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { Upload, FileText, CheckCircle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
+import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 export const UploadZone: React.FC = () => {
   const { t } = useTranslation();
   const { addTransactions } = useFinanceStore();
   const [uploading, setUploading] = useState(false);
+  const [selectedBankType, setSelectedBankType] = useState<string>('auto');
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -20,7 +22,7 @@ export const UploadZone: React.FC = () => {
 
     for (const file of acceptedFiles) {
       try {
-        await addTransactions(file);
+        await addTransactions(file, selectedBankType === 'auto' ? undefined : selectedBankType);
         successCount++;
         console.log(`Successfully processed: ${file.name}`);
       } catch (error) {
@@ -45,7 +47,7 @@ export const UploadZone: React.FC = () => {
         variant: "destructive",
       });
     }
-  }, [addTransactions, t]);
+  }, [addTransactions, t, selectedBankType]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -60,6 +62,25 @@ export const UploadZone: React.FC = () => {
   return (
     <div className="premium-card p-6">
       <h2 className="text-lg font-semibold text-foreground mb-4">{t('upload.title')}</h2>
+      
+      {/* Bank Type Selection */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-foreground mb-2">
+          Тип банка
+        </label>
+        <Select value={selectedBankType} onValueChange={setSelectedBankType}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">Автоопределение</SelectItem>
+            <SelectItem value="discount-transactions">Дисконт - Транзакции по счету</SelectItem>
+            <SelectItem value="discount-credit">Дисконт - Списания по кредитке</SelectItem>
+            <SelectItem value="max">Банк Макс</SelectItem>
+            <SelectItem value="cal">CAL</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       
       <div
         {...getRootProps()}
@@ -96,18 +117,18 @@ export const UploadZone: React.FC = () => {
       {/* Supported formats */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <SupportedFormat
-          bank={t('banks.max')}
-          format="CSV, XLSX"
-          icon={<FileText className="h-4 w-4" />}
-        />
-        <SupportedFormat
-          bank={t('banks.discount')}
+          bank="Дисконт - Транзакции"
           format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank={t('banks.cal')}
-          format="CSV"
+          bank="Дисконт - Кредитка"
+          format="XLSX"
+          icon={<FileText className="h-4 w-4" />}
+        />
+        <SupportedFormat
+          bank={t('banks.max')}
+          format="CSV, XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
       </div>

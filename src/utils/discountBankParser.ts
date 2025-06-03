@@ -3,9 +3,9 @@ import * as XLSX from 'xlsx';
 import { Transaction } from '../types/finance';
 
 export interface DiscountBankTransaction {
-  date: string; // ISO format
+  date: string;
   description: string;
-  amount: number; // positive for income, negative for expense
+  amount: number;
   balance?: number;
   type: 'income' | 'credit-debit' | 'direct-debit' | 'expense' | 'other';
   source: 'discount';
@@ -13,43 +13,29 @@ export interface DiscountBankTransaction {
   rawRow?: Record<string, any>;
 }
 
-// Hebrew column mappings for Discount Bank
-const DISCOUNT_COLUMNS = {
-  date: 'תאריך פעולה',
-  valueDate: 'תאריך ערך', 
-  description: 'תיאור פעולה',
-  reference: 'אסמכתא',
-  debit: 'חיוב',
-  credit: 'זכות',
-  balance: 'יתרה'
+// Column mappings for Discount Bank transactions table
+const DISCOUNT_TRANSACTIONS_COLUMNS = {
+  date: 'תאריך',
+  valueDate: 'יום ערך',
+  description: 'תיאור התנועה',
+  amount: '₪ זכות/חובה',
+  balance: '₪ יתרה',
+  reference: 'אסמכתה',
+  fee: 'עמלה',
+  channel: 'ערוץ ביצוע'
 };
 
-// Keywords for categorization
-const CREDIT_CARD_KEYWORDS = [
-  'חיוב כרטיס אשראי',
-  'MAX',
-  'CAL',
-  'ישראכרט',
-  'לאומי קארד',
-  'כאל',
-  'מקס'
-];
+// Column mappings for Discount Bank credit card table
+const DISCOUNT_CREDIT_COLUMNS = {
+  date: 'תאריך',
+  valueDate: 'יום ערך',
+  description: 'תיאור התנועה',
+  amount: '₪ זכות/חובה ב',
+  balance: '₪ יתרה משוערת',
+  notes: 'הערות'
+};
 
-const DIRECT_DEBIT_KEYWORDS = [
-  'הוראת קבע',
-  'חיוב ישיר',
-  'חח',
-  'חשמל',
-  'מים',
-  'ארנונה',
-  'סלולר',
-  'ביטוח',
-  'טלוויזיה',
-  'אינטרנט',
-  'גז'
-];
-
-export function parseDiscountBankFile(file: ArrayBuffer): DiscountBankTransaction[] {
+export function parseDiscountBankFile(file: ArrayBuffer, fileType?: string): DiscountBankTransaction[] {
   try {
     const workbook = XLSX.read(file, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
@@ -62,32 +48,33 @@ export function parseDiscountBankFile(file: ArrayBuffer): DiscountBankTransactio
       throw new Error('File appears to be empty or has no data rows');
     }
     
-    const headers = rawData[0] as string[];
-    const dataRows = rawData.slice(1);
+    console.log('Raw data length:', rawData.length);
+    console.log('First 5 rows:', rawData.slice(0, 5));
     
-    console.log('Discount Bank headers found:', headers);
+    // Find tables in the sheet
+    const tables = findTablesInSheet(rawData);
+    console.log('Found tables:', tables);
     
-    // Find column indices
-    const columnIndices = findColumnIndices(headers);
+    let targetTable;
     
-    const transactions: DiscountBankTransaction[] = [];
-    
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i] as any[];
-      
-      if (!row || row.length === 0) continue;
-      
-      try {
-        const transaction = parseDiscountBankRow(row, columnIndices, i + 2);
-        if (transaction) {
-          transactions.push(transaction);
-        }
-      } catch (error) {
-        console.warn(`Error parsing row ${i + 2}:`, error);
-      }
+    if (fileType === 'discount-transactions') {
+      targetTable = tables.find(t => t.type === 'transactions');
+    } else if (fileType === 'discount-credit') {
+      targetTable = tables.find(t => t.type === 'credit');
+    } else {
+      // Auto-detect: prefer transactions table
+      targetTable = tables.find(t => t.type === 'transactions') || tables.find(t => t.type === 'credit');
     }
     
+    if (!targetTable) {
+      throw new Error('Could not find a recognized table format in the file');
+    }
+    
+    console.log('Using table:', targetTable);
+    
+    const transactions = parseDiscountTable(rawData, targetTable);
     console.log(`Parsed ${transactions.length} Discount Bank transactions`);
+    
     return transactions;
     
   } catch (error) {
@@ -96,31 +83,90 @@ export function parseDiscountBankFile(file: ArrayBuffer): DiscountBankTransactio
   }
 }
 
-function findColumnIndices(headers: string[]): Record<string, number> {
+interface TableInfo {
+  type: 'transactions' | 'credit';
+  startRow: number;
+  endRow: number;
+  columnIndices: Record<string, number>;
+}
+
+function findTablesInSheet(rawData: any[]): TableInfo[] {
+  const tables: TableInfo[] = [];
+  
+  for (let i = 0; i < rawData.length; i++) {
+    const row = rawData[i] as any[];
+    if (!row || row.length === 0) continue;
+    
+    // Check for transactions table headers
+    const transactionIndices = findColumnIndices(row, DISCOUNT_TRANSACTIONS_COLUMNS);
+    if (Object.keys(transactionIndices).length >= 4) {
+      const endRow = findTableEnd(rawData, i + 1);
+      tables.push({
+        type: 'transactions',
+        startRow: i,
+        endRow,
+        columnIndices: transactionIndices
+      });
+      continue;
+    }
+    
+    // Check for credit card table headers
+    const creditIndices = findColumnIndices(row, DISCOUNT_CREDIT_COLUMNS);
+    if (Object.keys(creditIndices).length >= 4) {
+      const endRow = findTableEnd(rawData, i + 1);
+      tables.push({
+        type: 'credit',
+        startRow: i,
+        endRow,
+        columnIndices: creditIndices
+      });
+    }
+  }
+  
+  return tables;
+}
+
+function findColumnIndices(headers: any[], columnMap: Record<string, string>): Record<string, number> {
   const indices: Record<string, number> = {};
   
-  // Try to find columns by exact match first
-  Object.entries(DISCOUNT_COLUMNS).forEach(([key, hebrewName]) => {
-    const index = headers.findIndex(h => h === hebrewName);
+  Object.entries(columnMap).forEach(([key, hebrewName]) => {
+    const index = headers.findIndex(h => h && String(h).trim() === hebrewName);
     if (index !== -1) {
       indices[key] = index;
     }
   });
   
-  // If exact match fails, try partial match
-  if (Object.keys(indices).length < 3) {
-    Object.entries(DISCOUNT_COLUMNS).forEach(([key, hebrewName]) => {
-      if (indices[key] === undefined) {
-        const index = headers.findIndex(h => h && h.includes(hebrewName.split(' ')[0]));
-        if (index !== -1) {
-          indices[key] = index;
-        }
+  return indices;
+}
+
+function findTableEnd(rawData: any[], startRow: number): number {
+  for (let i = startRow; i < rawData.length; i++) {
+    const row = rawData[i] as any[];
+    if (!row || row.length === 0 || row.every(cell => !cell)) {
+      return i - 1;
+    }
+  }
+  return rawData.length - 1;
+}
+
+function parseDiscountTable(rawData: any[], table: TableInfo): DiscountBankTransaction[] {
+  const transactions: DiscountBankTransaction[] = [];
+  
+  for (let i = table.startRow + 1; i <= table.endRow; i++) {
+    const row = rawData[i] as any[];
+    if (!row || row.length === 0) continue;
+    
+    try {
+      const transaction = parseDiscountBankRow(row, table.columnIndices, i + 1);
+      if (transaction) {
+        transactions.push(transaction);
       }
-    });
+    } catch (error) {
+      console.warn(`Error parsing row ${i + 1}:`, error);
+    }
   }
   
-  console.log('Column indices found:', indices);
-  return indices;
+  return transactions;
 }
 
 function parseDiscountBankRow(
@@ -137,13 +183,12 @@ function parseDiscountBankRow(
   // Extract basic data
   const dateValue = getColumnValue('date');
   const description = String(getColumnValue('description') || '').trim();
-  const creditValue = getColumnValue('credit');
-  const debitValue = getColumnValue('debit');
+  const amountValue = getColumnValue('amount');
   const balanceValue = getColumnValue('balance');
   const reference = getColumnValue('reference');
   
   // Skip empty rows
-  if (!dateValue && !description && !creditValue && !debitValue) {
+  if (!dateValue && !description && !amountValue) {
     return null;
   }
   
@@ -154,23 +199,15 @@ function parseDiscountBankRow(
     return null;
   }
   
-  // Parse amounts
-  const credit = parseDiscountAmount(creditValue);
-  const debit = parseDiscountAmount(debitValue);
-  const balance = parseDiscountAmount(balanceValue);
-  
-  // Determine amount (positive for income, negative for expense)
-  let amount = 0;
-  if (credit > 0) {
-    amount = credit; // Income
-  } else if (debit > 0) {
-    amount = -debit; // Expense
-  }
-  
+  // Parse amount
+  const amount = parseDiscountAmount(amountValue);
   if (amount === 0) {
-    console.warn(`No amount found in row ${rowNumber}:`, { credit, debit });
+    console.warn(`No amount found in row ${rowNumber}:`, amountValue);
     return null;
   }
+  
+  // Parse balance
+  const balance = parseDiscountAmount(balanceValue);
   
   // Categorize transaction
   const type = categorizeDiscountTransaction(description, amount);
@@ -186,8 +223,7 @@ function parseDiscountBankRow(
     rawRow: {
       date: dateValue,
       description,
-      credit: creditValue,
-      debit: debitValue,
+      amount: amountValue,
       balance: balanceValue,
       reference
     }
@@ -199,7 +235,6 @@ function parseDiscountDate(dateValue: any): Date | null {
   
   // Handle Excel date numbers
   if (typeof dateValue === 'number') {
-    // Excel date serial number (days since 1900-01-01)
     const excelDate = new Date((dateValue - 25569) * 86400 * 1000);
     if (!isNaN(excelDate.getTime())) {
       return excelDate;
@@ -208,17 +243,15 @@ function parseDiscountDate(dateValue: any): Date | null {
   
   // Handle string dates
   if (typeof dateValue === 'string') {
-    // Try different date formats
     const formats = [
-      /(\d{1,2})\/(\d{1,2})\/(\d{4})/, // DD/MM/YYYY or MM/DD/YYYY
-      /(\d{4})-(\d{1,2})-(\d{1,2})/, // YYYY-MM-DD
-      /(\d{1,2})\.(\d{1,2})\.(\d{4})/ // DD.MM.YYYY
+      /(\d{1,2})\/(\d{1,2})\/(\d{4})/,
+      /(\d{4})-(\d{1,2})-(\d{1,2})/,
+      /(\d{1,2})\.(\d{1,2})\.(\d{4})/
     ];
     
     for (const format of formats) {
       const match = dateValue.match(format);
       if (match) {
-        // Assume DD/MM/YYYY for Israeli format
         const day = parseInt(match[1]);
         const month = parseInt(match[2]);
         const year = parseInt(match[3]);
@@ -230,7 +263,6 @@ function parseDiscountDate(dateValue: any): Date | null {
       }
     }
     
-    // Try parsing as-is
     const date = new Date(dateValue);
     if (!isNaN(date.getTime())) {
       return date;
@@ -250,7 +282,6 @@ function parseDiscountAmount(value: any): number {
   }
   
   if (typeof value === 'string') {
-    // Remove currency symbols, commas, and extra spaces
     const cleaned = value
       .replace(/₪/g, '')
       .replace(/,/g, '')
@@ -267,13 +298,12 @@ function parseDiscountAmount(value: any): number {
 function categorizeDiscountTransaction(description: string, amount: number): DiscountBankTransaction['type'] {
   const desc = description.toLowerCase();
   
-  // Income (positive amount)
   if (amount > 0) {
     return 'income';
   }
   
-  // Credit card charges
-  const isCreditCard = CREDIT_CARD_KEYWORDS.some(keyword => 
+  const creditCardKeywords = ['חיוב כרטיס אשראי', 'max', 'cal', 'ישראכרט', 'לאומי קארד'];
+  const isCreditCard = creditCardKeywords.some(keyword => 
     desc.includes(keyword.toLowerCase())
   );
   
@@ -281,8 +311,8 @@ function categorizeDiscountTransaction(description: string, amount: number): Dis
     return 'credit-debit';
   }
   
-  // Direct debits / standing orders
-  const isDirectDebit = DIRECT_DEBIT_KEYWORDS.some(keyword => 
+  const directDebitKeywords = ['הוראת קבע', 'חיוב ישיר', 'חח', 'חשמל', 'מים', 'ארנונה'];
+  const isDirectDebit = directDebitKeywords.some(keyword => 
     desc.includes(keyword.toLowerCase())
   );
   
@@ -290,7 +320,6 @@ function categorizeDiscountTransaction(description: string, amount: number): Dis
     return 'direct-debit';
   }
   
-  // Regular expense
   if (amount < 0) {
     return 'expense';
   }
@@ -298,7 +327,6 @@ function categorizeDiscountTransaction(description: string, amount: number): Dis
   return 'other';
 }
 
-// Convert to standard Transaction format
 export function convertDiscountToStandardTransaction(
   discountTransaction: DiscountBankTransaction
 ): Transaction {
@@ -328,4 +356,3 @@ function mapDiscountTypeToCategory(type: DiscountBankTransaction['type']): strin
       return 'other';
   }
 }
-

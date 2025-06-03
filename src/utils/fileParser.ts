@@ -35,8 +35,8 @@ const bankConfigs: Record<BankType, BankConfig> = {
   }
 };
 
-export async function parseFileData(file: File): Promise<Transaction[]> {
-  console.log(`Parsing file: ${file.name}, type: ${file.type}, size: ${file.size}`);
+export async function parseFileData(file: File, bankType?: string): Promise<Transaction[]> {
+  console.log(`Parsing file: ${file.name}, type: ${file.type}, size: ${file.size}, bankType: ${bankType}`);
   
   const fileExtension = file.name.split('.').pop()?.toLowerCase();
   let data: any[];
@@ -45,18 +45,33 @@ export async function parseFileData(file: File): Promise<Transaction[]> {
     if (fileExtension === 'csv') {
       data = await parseCSV(file);
     } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-      // For XLSX files, first try enhanced Discount Bank parsing
       const arrayBuffer = await file.arrayBuffer();
       
-      // Check if this looks like a Discount Bank file by trying enhanced parsing
-      try {
-        const discountTransactions = parseDiscountBankFile(arrayBuffer);
-        if (discountTransactions.length > 0) {
-          console.log(`Successfully parsed ${discountTransactions.length} transactions with enhanced Discount Bank parser`);
-          return discountTransactions.map(convertDiscountToStandardTransaction);
+      // Check if this is a specific Discount Bank file type
+      if (bankType === 'discount-transactions' || bankType === 'discount-credit') {
+        try {
+          const discountTransactions = parseDiscountBankFile(arrayBuffer, bankType);
+          if (discountTransactions.length > 0) {
+            console.log(`Successfully parsed ${discountTransactions.length} transactions with enhanced Discount Bank parser`);
+            return discountTransactions.map(convertDiscountToStandardTransaction);
+          }
+        } catch (discountError) {
+          console.log('Enhanced Discount Bank parsing failed:', discountError);
+          throw discountError;
         }
-      } catch (discountError) {
-        console.log('Enhanced Discount Bank parsing failed, falling back to generic XLSX parsing:', discountError);
+      }
+      
+      // For auto-detection or other bank types, try enhanced Discount Bank parsing first
+      if (!bankType || bankType === 'auto') {
+        try {
+          const discountTransactions = parseDiscountBankFile(arrayBuffer);
+          if (discountTransactions.length > 0) {
+            console.log(`Successfully parsed ${discountTransactions.length} transactions with enhanced Discount Bank parser`);
+            return discountTransactions.map(convertDiscountToStandardTransaction);
+          }
+        } catch (discountError) {
+          console.log('Enhanced Discount Bank parsing failed, falling back to generic XLSX parsing:', discountError);
+        }
       }
       
       // Fall back to generic XLSX parsing
@@ -68,11 +83,11 @@ export async function parseFileData(file: File): Promise<Transaction[]> {
     console.log(`Parsed ${data.length} rows from ${file.name}`);
     
     // Detect bank type based on column headers
-    const bankType = detectBankType(data[0] || {});
-    console.log(`Detected bank type: ${bankType}`);
+    const detectedBankType = detectBankType(data[0] || {});
+    console.log(`Detected bank type: ${detectedBankType}`);
     
     // Convert to transactions
-    const transactions = convertToTransactions(data, bankType);
+    const transactions = convertToTransactions(data, detectedBankType);
     console.log(`Converted to ${transactions.length} transactions`);
     
     return transactions;
