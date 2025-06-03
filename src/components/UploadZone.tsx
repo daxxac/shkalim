@@ -96,17 +96,17 @@ export const UploadZone: React.FC = () => {
       {/* Supported formats */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <SupportedFormat
-          bank={t('banks.sberbank')}
+          bank={t('banks.max')}
           format="CSV, XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank={t('banks.tinkoff')}
+          bank={t('banks.discount')}
           format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank={t('banks.alfabank')}
+          bank={t('banks.cal')}
           format="CSV"
           icon={<FileText className="h-4 w-4" />}
         />
