@@ -1,11 +1,13 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 export const UploadZone: React.FC = () => {
+  const { t } = useTranslation();
   const { addTransactions } = useFinanceStore();
   const [uploading, setUploading] = useState(false);
 
@@ -31,19 +33,19 @@ export const UploadZone: React.FC = () => {
 
     if (successCount > 0) {
       toast({
-        title: "הקבצים הועלו בהצלחה",
-        description: `${successCount} קבצים עובדו בהצלחה`,
+        title: t('upload.success'),
+        description: `${successCount} ${t('upload.filesProcessed')}`,
       });
     }
 
     if (errorCount > 0) {
       toast({
-        title: "שגיאה בעיבוד קבצים",
-        description: `${errorCount} קבצים לא עובדו`,
+        title: t('upload.error'),
+        description: `${errorCount} ${t('upload.filesNotProcessed')}`,
         variant: "destructive",
       });
     }
-  }, [addTransactions]);
+  }, [addTransactions, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -57,7 +59,7 @@ export const UploadZone: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">העלאת קבצי בנק</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('upload.title')}</h2>
       
       <div
         {...getRootProps()}
@@ -73,17 +75,17 @@ export const UploadZone: React.FC = () => {
           {uploading ? (
             <>
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600">מעבד קבצים...</p>
+              <p className="text-gray-600">{t('upload.processing')}</p>
             </>
           ) : (
             <>
               <Upload className="h-12 w-12 text-gray-400 mx-auto" />
               <div>
                 <p className="text-lg font-medium text-gray-900">
-                  {isDragActive ? 'שחרר לטעינה' : 'גרור קבצים או לחץ לבחירה'}
+                  {isDragActive ? t('upload.dropHere') : t('upload.dragDrop')}
                 </p>
                 <p className="text-gray-500 mt-1">
-                  תומך בקבצי CSV, XLSX מבנקים: MAX, Discount, CAL
+                  {t('upload.supportedFormats')}
                 </p>
               </div>
             </>
@@ -94,17 +96,17 @@ export const UploadZone: React.FC = () => {
       {/* Supported formats */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <SupportedFormat
-          bank="בנק מקס"
+          bank={t('banks.sberbank')}
           format="CSV, XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank="בנק דיסקונט"
+          bank={t('banks.tinkoff')}
           format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank="CAL (מזרחי)"
+          bank={t('banks.alfabank')}
           format="CSV"
           icon={<FileText className="h-4 w-4" />}
         />

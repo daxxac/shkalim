@@ -16,21 +16,25 @@ export function categorizeTransaction(transaction: Transaction, categories: Cate
   // Default categorization based on amount
   if (transaction.amount > 0) {
     // Positive amounts - likely income
-    if (description.includes('משכורת') || description.includes('שכר')) {
+    if (description.includes('зарплата') || description.includes('заработная плата')) {
       return 'salary';
     }
   } else {
     // Negative amounts - expenses
-    if (description.includes('אשראי') || description.includes('מועדון')) {
+    if (description.includes('покупка') || description.includes('оплата товаров')) {
       return 'shopping';
     }
     
-    if (description.includes('דלק') || description.includes('תחבורה')) {
+    if (description.includes('азс') || description.includes('транспорт') || description.includes('метро')) {
       return 'transport';
     }
     
-    if (description.includes('חשמל') || description.includes('מים') || description.includes('גז')) {
+    if (description.includes('жкх') || description.includes('коммунальные') || description.includes('электроэнергия')) {
       return 'bills';
+    }
+    
+    if (description.includes('супермаркет') || description.includes('магазин') || description.includes('продукты')) {
+      return 'food';
     }
   }
   

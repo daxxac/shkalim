@@ -1,16 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { UploadZone } from '../components/UploadZone';
 import { TransactionTable } from '../components/TransactionTable';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { SecurityModal } from '../components/SecurityModal';
+import { AutoSyncPanel } from '../components/AutoSyncPanel';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Button } from '../components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Shield, AlertTriangle } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 const Index = () => {
+  const { t } = useTranslation();
   const { 
     isLocked, 
     unlock, 
@@ -32,24 +37,24 @@ const Index = () => {
       await unlock(masterPassword);
       setMasterPassword('');
       toast({
-        title: "ברוכים הבאים!",
-        description: "המערכת נפתחה בהצלחה",
+        title: t('auth.welcome'),
+        description: t('auth.systemUnlocked'),
       });
     } catch (error) {
       toast({
-        title: "שגיאה",
-        description: "סיסמה שגויה",
+        title: t('auth.error'),
+        description: t('auth.wrongPassword'),
         variant: "destructive",
       });
     }
   };
 
   const handlePanicMode = () => {
-    if (window.confirm('האם אתה בטוח שברצונך למחוק את כל הנתונים? פעולה זו בלתי הפיכה!')) {
+    if (window.confirm(t('auth.confirmDelete'))) {
       panicMode();
       toast({
-        title: "נתונים נמחקו",
-        description: "כל הנתונים נמחקו מהמכשיר",
+        title: t('auth.dataDeleted'),
+        description: t('auth.allDataDeleted'),
         variant: "destructive",
       });
     }
@@ -60,7 +65,7 @@ const Index = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">טוען מערכת...</p>
+          <p className="text-gray-600">{t('dashboard.loading')}</p>
         </div>
       </div>
     );
@@ -70,10 +75,14 @@ const Index = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-green-50">
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full mx-4">
+          <div className="absolute top-4 right-4">
+            <LanguageSwitcher />
+          </div>
+          
           <div className="text-center mb-6">
             <Shield className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">מנהל הכספים האישי</h1>
-            <p className="text-gray-600">הזן סיסמת אב לגישה למערכת</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('app.title')}</h1>
+            <p className="text-gray-600">{t('auth.enterPassword')}</p>
           </div>
           
           <div className="space-y-4">
@@ -81,7 +90,7 @@ const Index = () => {
               type="password"
               value={masterPassword}
               onChange={(e) => setMasterPassword(e.target.value)}
-              placeholder="סיסמת אב"
+              placeholder={t('auth.masterPassword')}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
               onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
             />
@@ -91,7 +100,7 @@ const Index = () => {
               className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={!masterPassword}
             >
-              פתח מערכת
+              {t('auth.unlock')}
             </Button>
             
             <div className="flex justify-between items-center pt-4 border-t">
@@ -100,7 +109,7 @@ const Index = () => {
                 onClick={() => setShowSecurity(true)}
                 className="text-sm"
               >
-                הגדרות אבטחה
+                {t('auth.securitySettings')}
               </Button>
               
               <Button
@@ -110,7 +119,7 @@ const Index = () => {
                 className="flex items-center gap-2"
               >
                 <AlertTriangle className="h-4 w-4" />
-                מצב חירום
+                {t('auth.panicMode')}
               </Button>
             </div>
           </div>
@@ -120,7 +129,6 @@ const Index = () => {
           <SecurityModal
             onClose={() => setShowSecurity(false)}
             onPasswordSet={(password) => {
-              // Handle password setting logic here
               setShowSecurity(false);
             }}
           />
@@ -135,21 +143,21 @@ const Index = () => {
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">סך הכל עסקאות</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.totalTransactions')}</h3>
             <p className="text-3xl font-bold text-gray-900">{transactions.length.toLocaleString()}</p>
           </div>
           
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">יתרה נוכחית</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.currentBalance')}</h3>
             <p className="text-3xl font-bold text-green-600">
-              ₪{transactions
+              ₽{transactions
                 .reduce((sum, t) => sum + t.amount, 0)
-                .toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                .toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
             </p>
           </div>
           
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 className="text-sm font-medium text-gray-500 mb-2">עסקאות החודש</h3>
+            <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.monthTransactions')}</h3>
             <p className="text-3xl font-bold text-blue-600">
               {transactions.filter(t => {
                 const now = new Date();
@@ -161,18 +169,34 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Upload Zone */}
-        <UploadZone />
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <TransactionTable />
-          </div>
-          <div>
+        {/* Main Content Tabs */}
+        <Tabs defaultValue="upload" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="upload">{t('navigation.upload')}</TabsTrigger>
+            <TabsTrigger value="autosync">{t('navigation.autoSync')}</TabsTrigger>
+            <TabsTrigger value="analytics">Аналитика</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="upload" className="space-y-6">
+            <UploadZone />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <TransactionTable />
+              </div>
+              <div>
+                <AnalyticsPanel />
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="autosync">
+            <AutoSyncPanel />
+          </TabsContent>
+          
+          <TabsContent value="analytics">
             <AnalyticsPanel />
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

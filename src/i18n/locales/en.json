@@ -1,0 +1,85 @@
+
+{
+  "app": {
+    "title": "Personal Finance Manager",
+    "subtitle": "Advanced Banking Analysis",
+    "description": "Personal finance management system with support for Russian banks"
+  },
+  "auth": {
+    "masterPassword": "Master Password",
+    "enterPassword": "Enter master password to access the system",
+    "unlock": "Unlock System",
+    "securitySettings": "Security Settings",
+    "panicMode": "Panic Mode",
+    "welcome": "Welcome!",
+    "systemUnlocked": "System unlocked successfully",
+    "error": "Error",
+    "wrongPassword": "Wrong password",
+    "dataDeleted": "Data Deleted",
+    "allDataDeleted": "All data has been deleted from the device",
+    "confirmDelete": "Are you sure you want to delete all data? This action is irreversible!"
+  },
+  "dashboard": {
+    "totalTransactions": "Total Transactions",
+    "currentBalance": "Current Balance",
+    "monthTransactions": "This Month's Transactions",
+    "loading": "Loading system..."
+  },
+  "upload": {
+    "title": "Upload Bank Files",
+    "dragDrop": "Drag files or click to select",
+    "dropHere": "Drop to upload",
+    "supportedFormats": "Supports CSV, XLSX files from banks: Sberbank, Tinkoff, Alfa Bank",
+    "processing": "Processing files...",
+    "success": "Files uploaded successfully",
+    "error": "Error processing files",
+    "filesProcessed": "files processed successfully",
+    "filesNotProcessed": "files not processed"
+  },
+  "banks": {
+    "sberbank": "Sberbank",
+    "tinkoff": "Tinkoff Bank",
+    "alfabank": "Alfa Bank"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "upload": "File Upload",
+    "settings": "Settings",
+    "autoSync": "Auto Sync",
+    "exportData": "Export Data",
+    "lockSystem": "Lock System",
+    "logout": "Logout"
+  },
+  "categories": {
+    "food": "Food",
+    "transport": "Transport",
+    "shopping": "Shopping",
+    "bills": "Bills",
+    "healthcare": "Healthcare",
+    "entertainment": "Entertainment",
+    "salary": "Salary",
+    "other": "Other"
+  },
+  "autoSync": {
+    "title": "Automatic Bank Sync",
+    "description": "Set up automatic fetching of bank statements",
+    "addBank": "Add Bank Account",
+    "bankName": "Bank",
+    "username": "Username/Phone",
+    "password": "Password",
+    "lastSync": "Last Sync",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "syncNow": "Sync Now",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "syncing": "Syncing...",
+    "syncSuccess": "Sync completed successfully",
+    "syncError": "Sync failed",
+    "warning": "Security Warning",
+    "warningText": "Bank credentials are stored encrypted in your browser. This feature uses automation to access your bank account. Use at your own risk."
+  }
+}

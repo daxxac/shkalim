@@ -1,7 +1,7 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Transaction, BankType, Category } from '../types/finance';
+import { BankAccount } from '../types/banking';
 import { encryptData, decryptData } from '../utils/encryption';
 import { parseFileData } from '../utils/fileParser';
 import { categorizeTransaction } from '../utils/categorization';
@@ -9,9 +9,11 @@ import { categorizeTransaction } from '../utils/categorization';
 interface FinanceState {
   transactions: Transaction[];
   categories: Category[];
+  bankAccounts: BankAccount[];
   isLocked: boolean;
   isInitialized: boolean;
   masterPasswordHash: string | null;
+  currentLanguage: 'ru' | 'en';
   
   // Actions
   initializeStore: () => void;
@@ -19,6 +21,7 @@ interface FinanceState {
   lock: () => void;
   setMasterPassword: (password: string) => void;
   panicMode: () => void;
+  setLanguage: (lang: 'ru' | 'en') => void;
   
   addTransactions: (file: File) => Promise<void>;
   updateTransactionCategory: (id: string, categoryId: string) => void;
@@ -26,20 +29,25 @@ interface FinanceState {
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   
+  // Bank accounts
+  addBankAccount: (account: Omit<BankAccount, 'id'>) => void;
+  updateBankAccount: (id: string, updates: Partial<BankAccount>) => void;
+  deleteBankAccount: (id: string) => void;
+  
   getTransactionsByCategory: () => Record<string, Transaction[]>;
   getMonthlyBalance: () => Array<{month: string, balance: number}>;
   getTopExpenses: (limit?: number) => Transaction[];
 }
 
 const defaultCategories: Category[] = [
-  { id: 'food', name: 'מזון', color: '#ef4444', rules: ['שופרסל', 'רמי לוי', 'מעדניה'] },
-  { id: 'transport', name: 'תחבורה', color: '#3b82f6', rules: ['דלק', 'דן', 'מוניות'] },
-  { id: 'shopping', name: 'קניות', color: '#8b5cf6', rules: ['זארה', 'H&M', 'אמזון'] },
-  { id: 'bills', name: 'חשבונות', color: '#f59e0b', rules: ['חשמל', 'בזק', 'מי'] },
-  { id: 'healthcare', name: 'בריאות', color: '#10b981', rules: ['מכבי', 'קופת חולים', 'בית מרקחת'] },
-  { id: 'entertainment', name: 'בילויים', color: '#ec4899', rules: ['קולנוע', 'מסעדה', 'בר'] },
-  { id: 'salary', name: 'משכורת', color: '#22c55e', rules: ['משכורת', 'שכר'] },
-  { id: 'other', name: 'אחר', color: '#6b7280', rules: [] },
+  { id: 'food', name: 'Еда', color: '#ef4444', rules: ['магнит', 'пятерочка', 'перекресток', 'ашан'] },
+  { id: 'transport', name: 'Транспорт', color: '#3b82f6', rules: ['азс', 'метро', 'такси', 'яндекс'] },
+  { id: 'shopping', name: 'Покупки', color: '#8b5cf6', rules: ['wildberries', 'ozon', 'мвидео'] },
+  { id: 'bills', name: 'Счета', color: '#f59e0b', rules: ['жкх', 'мтс', 'билайн', 'мегафон'] },
+  { id: 'healthcare', name: 'Здоровье', color: '#10b981', rules: ['аптека', 'поликлиника', 'больница'] },
+  { id: 'entertainment', name: 'Развлечения', color: '#ec4899', rules: ['кино', 'ресторан', 'кафе'] },
+  { id: 'salary', name: 'Зарплата', color: '#22c55e', rules: ['зарплата', 'заработная плата'] },
+  { id: 'other', name: 'Прочее', color: '#6b7280', rules: [] },
 ];
 
 export const useFinanceStore = create<FinanceState>()(
@@ -47,9 +55,11 @@ export const useFinanceStore = create<FinanceState>()(
     (set, get) => ({
       transactions: [],
       categories: defaultCategories,
+      bankAccounts: [],
       isLocked: true,
       isInitialized: false,
       masterPasswordHash: null,
+      currentLanguage: 'ru',
 
       initializeStore: () => {
         const state = get();
@@ -86,6 +96,10 @@ export const useFinanceStore = create<FinanceState>()(
         localStorage.clear();
         indexedDB.deleteDatabase('finance-app');
         window.location.reload();
+      },
+
+      setLanguage: (lang: 'ru' | 'en') => {
+        set({ currentLanguage: lang });
       },
 
       addTransactions: async (file: File) => {
@@ -153,6 +167,31 @@ export const useFinanceStore = create<FinanceState>()(
         }));
       },
 
+      addBankAccount: (account) => {
+        const newAccount = { 
+          ...account, 
+          id: Date.now().toString(),
+          isActive: true 
+        };
+        set(state => ({
+          bankAccounts: [...state.bankAccounts, newAccount]
+        }));
+      },
+
+      updateBankAccount: (id: string, updates: Partial<BankAccount>) => {
+        set(state => ({
+          bankAccounts: state.bankAccounts.map(acc =>
+            acc.id === id ? { ...acc, ...updates } : acc
+          )
+        }));
+      },
+
+      deleteBankAccount: (id: string) => {
+        set(state => ({
+          bankAccounts: state.bankAccounts.filter(acc => acc.id !== id)
+        }));
+      },
+
       getTransactionsByCategory: () => {
         const { transactions } = get();
         return transactions.reduce((acc, transaction) => {
@@ -191,7 +230,9 @@ export const useFinanceStore = create<FinanceState>()(
       partialize: (state) => ({
         transactions: state.transactions,
         categories: state.categories,
+        bankAccounts: state.bankAccounts,
         masterPasswordHash: state.masterPasswordHash,
+        currentLanguage: state.currentLanguage,
       }),
     }
   )

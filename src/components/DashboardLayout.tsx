@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { Button } from './ui/button';
 import { 
   TrendingUp, 
@@ -10,7 +12,8 @@ import {
   Shield,
   Download,
   Menu,
-  X
+  X,
+  Sync
 } from 'lucide-react';
 
 interface DashboardLayoutProps {
@@ -18,6 +21,7 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+  const { t } = useTranslation();
   const { lock, transactions } = useFinanceStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -33,9 +37,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50">
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 right-4 z-50">
+      <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
           variant="outline"
           size="sm"
@@ -46,9 +50,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         </Button>
       </div>
 
+      {/* Language Switcher - top right */}
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSwitcher />
+      </div>
+
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 right-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
-        sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+      <div className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       } lg:translate-x-0 lg:static lg:inset-0`}>
         <div className="flex flex-col h-full">
           {/* Header */}
@@ -58,17 +67,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
                 <TrendingUp className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">מנהל כספים</h1>
-                <p className="text-sm text-gray-500">ניהול פיננסי אישי</p>
+                <h1 className="text-xl font-bold text-gray-900">{t('app.title')}</h1>
+                <p className="text-sm text-gray-500">{t('app.subtitle')}</p>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
           <nav className="flex-1 p-4 space-y-2">
-            <NavItem icon={TrendingUp} label="דשבורד" active />
-            <NavItem icon={Upload} label="העלאת קבצים" />
-            <NavItem icon={Settings} label="הגדרות" />
+            <NavItem icon={TrendingUp} label={t('navigation.dashboard')} active />
+            <NavItem icon={Upload} label={t('navigation.upload')} />
+            <NavItem icon={Sync} label={t('navigation.autoSync')} />
+            <NavItem icon={Settings} label={t('navigation.settings')} />
           </nav>
 
           {/* Footer */}
@@ -78,8 +88,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               className="w-full justify-start"
               onClick={exportData}
             >
-              <Download className="h-4 w-4 ml-2" />
-              ייצא נתונים
+              <Download className="h-4 w-4 mr-2" />
+              {t('navigation.exportData')}
             </Button>
             
             <Button
@@ -87,8 +97,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               className="w-full justify-start"
               onClick={lock}
             >
-              <Shield className="h-4 w-4 ml-2" />
-              נעל מערכת
+              <Shield className="h-4 w-4 mr-2" />
+              {t('navigation.lockSystem')}
             </Button>
             
             <Button
@@ -96,15 +106,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
               className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
               onClick={lock}
             >
-              <LogOut className="h-4 w-4 ml-2" />
-              יציאה
+              <LogOut className="h-4 w-4 mr-2" />
+              {t('navigation.logout')}
             </Button>
           </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="lg:mr-64">
+      <div className="lg:ml-64">
         <main className="p-6">
           {children}
         </main>
@@ -131,7 +141,7 @@ interface NavItemProps {
 const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-right transition-colors ${
+    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
       active
         ? 'bg-blue-50 text-blue-700 border border-blue-200'
         : 'text-gray-700 hover:bg-gray-100'
