@@ -1,0 +1,213 @@
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { Transaction, BankType, Category } from '../types/finance';
+import { encryptData, decryptData } from '../utils/encryption';
+import { parseFileData } from '../utils/fileParser';
+import { categorizeTransaction } from '../utils/categorization';
+
+interface FinanceState {
+  transactions: Transaction[];
+  categories: Category[];
+  isLocked: boolean;
+  isInitialized: boolean;
+  masterPasswordHash: string | null;
+  
+  // Actions
+  initializeStore: () => void;
+  unlock: (password: string) => Promise<void>;
+  lock: () => void;
+  setMasterPassword: (password: string) => void;
+  panicMode: () => void;
+  
+  addTransactions: (file: File) => Promise<void>;
+  updateTransactionCategory: (id: string, categoryId: string) => void;
+  addCategory: (category: Omit<Category, 'id'>) => void;
+  updateCategory: (id: string, updates: Partial<Category>) => void;
+  deleteCategory: (id: string) => void;
+  
+  getTransactionsByCategory: () => Record<string, Transaction[]>;
+  getMonthlyBalance: () => Array<{month: string, balance: number}>;
+  getTopExpenses: (limit?: number) => Transaction[];
+}
+
+const defaultCategories: Category[] = [
+  { id: 'food', name: 'מזון', color: '#ef4444', rules: ['שופרסל', 'רמי לוי', 'מעדניה'] },
+  { id: 'transport', name: 'תחבורה', color: '#3b82f6', rules: ['דלק', 'דן', 'מוניות'] },
+  { id: 'shopping', name: 'קניות', color: '#8b5cf6', rules: ['זארה', 'H&M', 'אמזון'] },
+  { id: 'bills', name: 'חשבונות', color: '#f59e0b', rules: ['חשמל', 'בזק', 'מי'] },
+  { id: 'healthcare', name: 'בריאות', color: '#10b981', rules: ['מכבי', 'קופת חולים', 'בית מרקחת'] },
+  { id: 'entertainment', name: 'בילויים', color: '#ec4899', rules: ['קולנוע', 'מסעדה', 'בר'] },
+  { id: 'salary', name: 'משכורת', color: '#22c55e', rules: ['משכורת', 'שכר'] },
+  { id: 'other', name: 'אחר', color: '#6b7280', rules: [] },
+];
+
+export const useFinanceStore = create<FinanceState>()(
+  persist(
+    (set, get) => ({
+      transactions: [],
+      categories: defaultCategories,
+      isLocked: true,
+      isInitialized: false,
+      masterPasswordHash: null,
+
+      initializeStore: () => {
+        const state = get();
+        const hasPassword = !!state.masterPasswordHash;
+        set({ isInitialized: true, isLocked: hasPassword });
+      },
+
+      unlock: async (password: string) => {
+        const state = get();
+        
+        if (!state.masterPasswordHash) {
+          // First time setup
+          const hash = await hashPassword(password);
+          set({ masterPasswordHash: hash, isLocked: false });
+          return;
+        }
+        
+        const isValid = await verifyPassword(password, state.masterPasswordHash);
+        if (!isValid) {
+          throw new Error('Invalid password');
+        }
+        
+        set({ isLocked: false });
+      },
+
+      lock: () => set({ isLocked: true }),
+
+      setMasterPassword: async (password: string) => {
+        const hash = await hashPassword(password);
+        set({ masterPasswordHash: hash });
+      },
+
+      panicMode: () => {
+        localStorage.clear();
+        indexedDB.deleteDatabase('finance-app');
+        window.location.reload();
+      },
+
+      addTransactions: async (file: File) => {
+        try {
+          const newTransactions = await parseFileData(file);
+          const { transactions, categories } = get();
+          
+          // Remove duplicates based on date, amount, and description
+          const existingTransactionKeys = new Set(
+            transactions.map(t => `${t.date}-${t.amount}-${t.description}`)
+          );
+          
+          const uniqueTransactions = newTransactions.filter(t => 
+            !existingTransactionKeys.has(`${t.date}-${t.amount}-${t.description}`)
+          );
+          
+          // Auto-categorize new transactions
+          const categorizedTransactions = uniqueTransactions.map(transaction => ({
+            ...transaction,
+            category: categorizeTransaction(transaction, categories)
+          }));
+          
+          set({ 
+            transactions: [...transactions, ...categorizedTransactions].sort(
+              (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            )
+          });
+          
+          console.log(`Added ${categorizedTransactions.length} new transactions`);
+        } catch (error) {
+          console.error('Error adding transactions:', error);
+          throw error;
+        }
+      },
+
+      updateTransactionCategory: (id: string, categoryId: string) => {
+        set(state => ({
+          transactions: state.transactions.map(t =>
+            t.id === id ? { ...t, category: categoryId } : t
+          )
+        }));
+      },
+
+      addCategory: (category) => {
+        const newCategory = { ...category, id: Date.now().toString() };
+        set(state => ({
+          categories: [...state.categories, newCategory]
+        }));
+      },
+
+      updateCategory: (id: string, updates: Partial<Category>) => {
+        set(state => ({
+          categories: state.categories.map(c =>
+            c.id === id ? { ...c, ...updates } : c
+          )
+        }));
+      },
+
+      deleteCategory: (id: string) => {
+        set(state => ({
+          categories: state.categories.filter(c => c.id !== id),
+          transactions: state.transactions.map(t =>
+            t.category === id ? { ...t, category: 'other' } : t
+          )
+        }));
+      },
+
+      getTransactionsByCategory: () => {
+        const { transactions } = get();
+        return transactions.reduce((acc, transaction) => {
+          const category = transaction.category || 'other';
+          if (!acc[category]) acc[category] = [];
+          acc[category].push(transaction);
+          return acc;
+        }, {} as Record<string, Transaction[]>);
+      },
+
+      getMonthlyBalance: () => {
+        const { transactions } = get();
+        const monthlyData: Record<string, number> = {};
+        
+        transactions.forEach(transaction => {
+          const date = new Date(transaction.date);
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + transaction.amount;
+        });
+        
+        return Object.entries(monthlyData)
+          .map(([month, balance]) => ({ month, balance }))
+          .sort((a, b) => a.month.localeCompare(b.month));
+      },
+
+      getTopExpenses: (limit = 10) => {
+        const { transactions } = get();
+        return transactions
+          .filter(t => t.amount < 0)
+          .sort((a, b) => a.amount - b.amount)
+          .slice(0, limit);
+      },
+    }),
+    {
+      name: 'finance-storage',
+      partialize: (state) => ({
+        transactions: state.transactions,
+        categories: state.categories,
+        masterPasswordHash: state.masterPasswordHash,
+      }),
+    }
+  )
+);
+
+// Helper functions for password hashing
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const passwordHash = await hashPassword(password);
+  return passwordHash === hash;
+}
