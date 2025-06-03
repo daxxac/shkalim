@@ -255,89 +255,89 @@ const Index = () => {
   }
 
   // This block is removed to allow core functionality without Supabase auth first.
-  if (!isSupabaseAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
-        <div className="premium-card p-8 max-w-md w-full mx-4">
-          <div className="absolute top-4 right-4">
-            <LanguageSwitcher />
-          </div>
-          <div className="text-center mb-6">
-            {authUiMode === 'login' ? 
-              <LogInIcon className="mx-auto h-12 w-12 text-primary mb-4" /> :
-              <UserPlus className="mx-auto h-12 w-12 text-primary mb-4" />
-            }
-            <h1 className="text-2xl font-bold text-foreground mb-2">SHKALIM</h1>
-            <p className="text-xs text-muted-foreground mb-4">{t('alt.byDaxxac')}</p>
-            <p className="text-muted-foreground">
-              {authUiMode === 'login' 
-                ? t('auth.supabaseLoginPrompt', 'Please log in to continue')
-                : t('auth.supabaseSignUpPrompt', 'Create an account to get started')}
-            </p>
-          </div>
+  // if (!isSupabaseAuthenticated) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
+  //       <div className="premium-card p-8 max-w-md w-full mx-4">
+  //         <div className="absolute top-4 right-4">
+  //           <LanguageSwitcher />
+  //         </div>
+  //         <div className="text-center mb-6">
+  //           {authUiMode === 'login' ?
+  //             <LogInIcon className="mx-auto h-12 w-12 text-primary mb-4" /> :
+  //             <UserPlus className="mx-auto h-12 w-12 text-primary mb-4" />
+  //           }
+  //           <h1 className="text-2xl font-bold text-foreground mb-2">SHKALIM</h1>
+  //           <p className="text-xs text-muted-foreground mb-4">{t('alt.byDaxxac')}</p>
+  //           <p className="text-muted-foreground">
+  //             {authUiMode === 'login'
+  //               ? t('auth.supabaseLoginPrompt', 'Please log in to continue')
+  //               : t('auth.supabaseSignUpPrompt', 'Create an account to get started')}
+  //           </p>
+  //         </div>
 
-          {authUiMode === 'login' ? (
-            <form onSubmit={handleSupabaseLoginSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email_login" className="block text-sm font-medium text-foreground mb-1">{t('auth.emailLabel', 'Email')}</label>
-                <div className="relative">
-                  <Input id="email_login" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholderLogin', 'your@email.com')} required className="bg-background" disabled={isAuthLoading} />
-                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><Mail className="h-5 w-5 text-gray-400" /></span>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="supabasePassword_login" className="block text-sm font-medium text-foreground mb-1">{t('auth.passwordLabel', 'Password')}</label>
-                <div className="relative">
-                  <Input id="supabasePassword_login" type="password" value={supabasePassword} onChange={(e) => setSupabasePassword(e.target.value)} placeholder={t('auth.passwordPlaceholderLogin', 'Enter your password')} required className="bg-background" disabled={isAuthLoading} />
-                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
-                </div>
-              </div>
-              {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
-              <Button type="submit" className="w-full premium-button" disabled={isAuthLoading || !email || !supabasePassword}>
-                {isAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('auth.loginButton', 'Log In')}
-              </Button>
-              <Button variant="link" type="button" onClick={() => { setAuthUiMode('register'); setAuthError(null); setEmail(''); setSupabasePassword(''); setConfirmSupabasePassword(''); }} className="w-full">
-                {t('auth.switchToSignUp', "Don't have an account? Sign Up")}
-              </Button>
-            </form>
-          ) : ( // Registration form
-            <form onSubmit={handleSupabaseSignUpSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.emailLabel', 'Email')}</label>
-                <div className="relative">
-                  <Input id="email_signup" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholderSignup', 'your@email.com')} required className="bg-background" disabled={isAuthLoading} />
-                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><Mail className="h-5 w-5 text-gray-400" /></span>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="supabasePassword_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.passwordLabel', 'Password')}</label>
-                <div className="relative">
-                  <Input id="supabasePassword_signup" type="password" value={supabasePassword} onChange={(e) => setSupabasePassword(e.target.value)} placeholder={t('auth.passwordPlaceholderSignup', 'Create a password (min. 6 characters)')} required className="bg-background" disabled={isAuthLoading} minLength={6}/>
-                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
-                </div>
-              </div>
-              <div>
-                <label htmlFor="confirmSupabasePassword_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.confirmPasswordLabel', 'Confirm Password')}</label>
-                <div className="relative">
-                  <Input id="confirmSupabasePassword_signup" type="password" value={confirmSupabasePassword} onChange={(e) => setConfirmSupabasePassword(e.target.value)} placeholder={t('auth.confirmPasswordPlaceholderSignup', 'Confirm your password')} required className="bg-background" disabled={isAuthLoading} minLength={6}/>
-                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
-                </div>
-              </div>
-              {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
-              <Button type="submit" className="w-full premium-button" disabled={isAuthLoading || !email || !supabasePassword || !confirmSupabasePassword || supabasePassword !== confirmSupabasePassword}>
-                {isAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {t('auth.signUpButton', 'Sign Up')}
-              </Button>
-              <Button variant="link" type="button" onClick={() => { setAuthUiMode('login'); setAuthError(null); setEmail(''); setSupabasePassword(''); }} className="w-full">
-                {t('auth.switchToLogin', 'Already have an account? Log In')}
-              </Button>
-            </form>
-          )}
-        </div>
-      </div>
-    );
-  }
+  //         {authUiMode === 'login' ? (
+  //           <form onSubmit={handleSupabaseLoginSubmit} className="space-y-4">
+  //             <div>
+  //               <label htmlFor="email_login" className="block text-sm font-medium text-foreground mb-1">{t('auth.emailLabel', 'Email')}</label>
+  //               <div className="relative">
+  //                 <Input id="email_login" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholderLogin', 'your@email.com')} required className="bg-background" disabled={isAuthLoading} />
+  //                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><Mail className="h-5 w-5 text-gray-400" /></span>
+  //               </div>
+  //             </div>
+  //             <div>
+  //               <label htmlFor="supabasePassword_login" className="block text-sm font-medium text-foreground mb-1">{t('auth.passwordLabel', 'Password')}</label>
+  //               <div className="relative">
+  //                 <Input id="supabasePassword_login" type="password" value={supabasePassword} onChange={(e) => setSupabasePassword(e.target.value)} placeholder={t('auth.passwordPlaceholderLogin', 'Enter your password')} required className="bg-background" disabled={isAuthLoading} />
+  //                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
+  //               </div>
+  //             </div>
+  //             {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
+  //             <Button type="submit" className="w-full premium-button" disabled={isAuthLoading || !email || !supabasePassword}>
+  //               {isAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+  //               {t('auth.loginButton', 'Log In')}
+  //             </Button>
+  //             <Button variant="link" type="button" onClick={() => { setAuthUiMode('register'); setAuthError(null); setEmail(''); setSupabasePassword(''); setConfirmSupabasePassword(''); }} className="w-full">
+  //               {t('auth.switchToSignUp', "Don't have an account? Sign Up")}
+  //             </Button>
+  //           </form>
+  //         ) : ( // Registration form
+  //           <form onSubmit={handleSupabaseSignUpSubmit} className="space-y-4">
+  //             <div>
+  //               <label htmlFor="email_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.emailLabel', 'Email')}</label>
+  //               <div className="relative">
+  //                 <Input id="email_signup" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholderSignup', 'your@email.com')} required className="bg-background" disabled={isAuthLoading} />
+  //                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><Mail className="h-5 w-5 text-gray-400" /></span>
+  //               </div>
+  //             </div>
+  //             <div>
+  //               <label htmlFor="supabasePassword_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.passwordLabel', 'Password')}</label>
+  //               <div className="relative">
+  //                 <Input id="supabasePassword_signup" type="password" value={supabasePassword} onChange={(e) => setSupabasePassword(e.target.value)} placeholder={t('auth.passwordPlaceholderSignup', 'Create a password (min. 6 characters)')} required className="bg-background" disabled={isAuthLoading} minLength={6}/>
+  //                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
+  //               </div>
+  //             </div>
+  //             <div>
+  //               <label htmlFor="confirmSupabasePassword_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.confirmPasswordLabel', 'Confirm Password')}</label>
+  //               <div className="relative">
+  //                 <Input id="confirmSupabasePassword_signup" type="password" value={confirmSupabasePassword} onChange={(e) => setConfirmSupabasePassword(e.target.value)} placeholder={t('auth.confirmPasswordPlaceholderSignup', 'Confirm your password')} required className="bg-background" disabled={isAuthLoading} minLength={6}/>
+  //                 <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
+  //               </div>
+  //             </div>
+  //             {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
+  //             <Button type="submit" className="w-full premium-button" disabled={isAuthLoading || !email || !supabasePassword || !confirmSupabasePassword || supabasePassword !== confirmSupabasePassword}>
+  //               {isAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+  //               {t('auth.signUpButton', 'Sign Up')}
+  //             </Button>
+  //             <Button variant="link" type="button" onClick={() => { setAuthUiMode('login'); setAuthError(null); setEmail(''); setSupabasePassword(''); }} className="w-full">
+  //               {t('auth.switchToLogin', 'Already have an account? Log In')}
+  //             </Button>
+  //           </form>
+  //         )}
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (isDataLocked) {
     // This condition now implicitly means isSupabaseAuthenticated is true OR we are allowing non-Supabase users
