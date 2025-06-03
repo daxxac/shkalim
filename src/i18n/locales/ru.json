@@ -67,7 +67,11 @@
     "bills": "Счета",
     "healthcare": "Здоровье",
     "entertainment": "Развлечения",
-    "salary": "Зарплата"
+    "salary": "Зарплата",
+    "uploadTitle": "Загрузка категорий",
+    "uploadDescription": "Загрузите CSV файл с категориями",
+    "dragDrop": "Перетащите файлы сюда или нажмите для выбора",
+    "csvFormat": "Формат CSV: название, цвет"
   },
   "upload": {
     "title": "Загрузка файлов",
@@ -89,7 +93,25 @@
     "language": "Язык",
     "theme": "Тема",
     "security": "Безопасность",
-    "data": "Данные"
+    "data": "Данные",
+    "dangerZone": "Опасная зона",
+    "resetData": "Сбросить все данные",
+    "resetDescription": "Это навсегда удалит все транзакции и настройки",
+    "currentData": "Текущие данные"
+  },
+  "security": {
+    "title": "Настройки безопасности",
+    "dataProtection": "Защита данных",
+    "encryptionInfo": "Ваши данные зашифрованы и хранятся локально",
+    "newPassword": "Новый пароль",
+    "passwordPlaceholder": "Введите новый пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "confirmPasswordPlaceholder": "Подтвердите ваш пароль",
+    "showPassword": "Показать пароль",
+    "importantRemember": "Важно: Запомните этот пароль!",
+    "noRecovery": "Нет способа восстановить забытый пароль",
+    "cancel": "Отмена",
+    "setPassword": "Установить пароль"
   },
   "autoSync": {
     "title": "Автоматическая синхронизация",

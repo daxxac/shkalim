@@ -67,7 +67,11 @@
     "bills": "Bills",
     "healthcare": "Healthcare",
     "entertainment": "Entertainment",
-    "salary": "Salary"
+    "salary": "Salary",
+    "uploadTitle": "Upload Categories",
+    "uploadDescription": "Upload a CSV file with categories",
+    "dragDrop": "Drag files here or click to select",
+    "csvFormat": "CSV format: name, color"
   },
   "upload": {
     "title": "File Upload",
@@ -89,7 +93,25 @@
     "language": "Language",
     "theme": "Theme",
     "security": "Security",
-    "data": "Data"
+    "data": "Data",
+    "dangerZone": "Danger Zone",
+    "resetData": "Reset All Data",
+    "resetDescription": "This will permanently delete all transactions and settings",
+    "currentData": "Current data"
+  },
+  "security": {
+    "title": "Security Settings",
+    "dataProtection": "Data Protection",
+    "encryptionInfo": "Your data is encrypted and stored locally",
+    "newPassword": "New Password",
+    "passwordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm your password",
+    "showPassword": "Show password",
+    "importantRemember": "Important: Remember this password!",
+    "noRecovery": "There is no way to recover a forgotten password",
+    "cancel": "Cancel",
+    "setPassword": "Set Password"
   },
   "autoSync": {
     "title": "Auto Sync",

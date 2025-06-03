@@ -86,11 +86,15 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
     return filtered;
   }, [transactions, searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, dateFilterType]);
 
-  // Calculate pagination only if no limit is applied
-  const totalPages = limit ? 1 : Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
-  const startIndex = limit ? 0 : (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = limit ? limit : startIndex + ITEMS_PER_PAGE;
-  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  
+  // Apply limit only after pagination calculation
+  const paginatedTransactions = limit ? 
+    filteredTransactions.slice(0, limit) : 
+    filteredTransactions.slice(startIndex, endIndex);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -292,7 +296,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         </Card>
       )}
 
-      {/* Pagination */}
+      {/* Pagination - only show if no limit is applied */}
       {!limit && totalPages > 1 && (
         <div className="flex justify-center">
           <Pagination>
@@ -345,17 +349,17 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         <Card className="premium-card">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              Показано {startIndex + 1}-{Math.min(endIndex, filteredTransactions.length)} из {filteredTransactions.length.toLocaleString()} транзакций
+              {t('transactions.showing')} {startIndex + 1}-{Math.min(endIndex, filteredTransactions.length)} {t('transactions.of')} {filteredTransactions.length.toLocaleString()}
             </p>
           </CardContent>
         </Card>
       )}
 
-      {limit && filteredTransactions.length > limit && (
+      {limit && (
         <Card className="premium-card">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              {t('transactions.showing')} {Math.min(limit, paginatedTransactions.length)} {t('transactions.of')} {filteredTransactions.length.toLocaleString()}
+              {t('transactions.showing')} {Math.min(limit, filteredTransactions.length)} {t('transactions.of')} {filteredTransactions.length.toLocaleString()}
             </p>
           </CardContent>
         </Card>
