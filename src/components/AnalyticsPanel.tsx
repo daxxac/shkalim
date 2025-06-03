@@ -1,25 +1,27 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
 
 export const AnalyticsPanel: React.FC = () => {
+  const { t } = useTranslation();
   const { transactions, categories, getTransactionsByCategory, getMonthlyBalance } = useFinanceStore();
 
   const categoryData = React.useMemo(() => {
     const transactionsByCategory = getTransactionsByCategory();
     return categories.map(category => ({
-      name: category.name,
+      name: t(`categories.${category.id}`) || category.name,
       value: Math.abs(
         transactionsByCategory[category.id]?.reduce((sum, t) => sum + Math.min(0, t.amount), 0) || 0
       ),
       color: category.color
     })).filter(item => item.value > 0);
-  }, [transactions, categories, getTransactionsByCategory]);
+  }, [transactions, categories, getTransactionsByCategory, t]);
 
   const monthlyData = React.useMemo(() => {
     return getMonthlyBalance().slice(-6).map(item => ({
-      month: new Date(item.month + '-01').toLocaleDateString('he-IL', { 
+      month: new Date(item.month + '-01').toLocaleDateString(undefined, { 
         year: 'numeric', 
         month: 'short' 
       }),
@@ -36,25 +38,27 @@ export const AnalyticsPanel: React.FC = () => {
     <div className="space-y-6">
       {/* Summary Stats */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">סיכום פיננסי</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {t('dashboard.currentBalance')}
+        </h3>
         
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">סך הכנסות:</span>
+            <span className="text-gray-600">{t('categories.salary')}:</span>
             <span className="font-bold text-green-600">
               ₪{totalIncome.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
             </span>
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-gray-600">סך הוצאות:</span>
+            <span className="text-gray-600">{t('upload.error')}:</span>
             <span className="font-bold text-red-600">
               ₪{totalExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
             </span>
           </div>
           
           <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-            <span className="text-gray-900 font-medium">יתרה:</span>
+            <span className="text-gray-900 font-medium">{t('dashboard.currentBalance')}:</span>
             <span className={`font-bold text-lg ${
               totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'
             }`}>
@@ -66,7 +70,9 @@ export const AnalyticsPanel: React.FC = () => {
 
       {/* Expenses by Category */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">הוצאות לפי קטגוריה</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {t('categories.other')}
+        </h3>
         
         {categoryData.length > 0 ? (
           <>
@@ -89,7 +95,7 @@ export const AnalyticsPanel: React.FC = () => {
                   <Tooltip
                     formatter={(value: number) => [
                       `₪${value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
-                      'סכום'
+                      t('dashboard.currentBalance')
                     ]}
                   />
                 </PieChart>
@@ -123,14 +129,16 @@ export const AnalyticsPanel: React.FC = () => {
           </>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>אין נתוני הוצאות להצגה</p>
+            <p>{t('upload.error')}</p>
           </div>
         )}
       </div>
 
       {/* Monthly Balance Trend */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">מגמת יתרה חודשית</h3>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          {t('dashboard.monthTransactions')}
+        </h3>
         
         {monthlyData.length > 0 ? (
           <div className="h-64">
@@ -148,7 +156,7 @@ export const AnalyticsPanel: React.FC = () => {
                 <Tooltip
                   formatter={(value: number) => [
                     `₪${value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
-                    'יתרה'
+                    t('dashboard.currentBalance')
                   ]}
                 />
                 <Bar 
@@ -161,7 +169,7 @@ export const AnalyticsPanel: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            <p>אין נתונים חודשיים להצגה</p>
+            <p>{t('upload.error')}</p>
           </div>
         )}
       </div>

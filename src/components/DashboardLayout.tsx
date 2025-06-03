@@ -43,9 +43,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <BarChart3 className="h-8 w-8 text-blue-600 mr-3" />
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  {t('app.title')}
+                  SHKALIM
                 </h1>
-                <p className="text-sm text-gray-500">{t('app.subtitle')}</p>
+                <p className="text-xs text-gray-400">by daxxac</p>
               </div>
             </div>
             

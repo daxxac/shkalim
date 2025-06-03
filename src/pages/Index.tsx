@@ -27,6 +27,7 @@ const Index = () => {
   
   const [showSecurity, setShowSecurity] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
     initializeStore();
@@ -81,7 +82,8 @@ const Index = () => {
           
           <div className="text-center mb-6">
             <Shield className="mx-auto h-12 w-12 text-blue-600 mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('app.title')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">SHKALIM</h1>
+            <p className="text-xs text-gray-400 mb-4">by daxxac</p>
             <p className="text-gray-600">{t('auth.enterPassword')}</p>
           </div>
           
@@ -138,7 +140,7 @@ const Index = () => {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
       <div className="space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -150,9 +152,9 @@ const Index = () => {
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 className="text-sm font-medium text-gray-500 mb-2">{t('dashboard.currentBalance')}</h3>
             <p className="text-3xl font-bold text-green-600">
-              ₽{transactions
+              ₪{transactions
                 .reduce((sum, t) => sum + t.amount, 0)
-                .toLocaleString('ru-RU', { minimumFractionDigits: 2 })}
+                .toLocaleString('he-IL', { minimumFractionDigits: 2 })}
             </p>
           </div>
           
@@ -170,11 +172,11 @@ const Index = () => {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="upload" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="upload">{t('navigation.upload')}</TabsTrigger>
-            <TabsTrigger value="autosync">{t('navigation.autoSync')}</TabsTrigger>
-            <TabsTrigger value="analytics">Аналитика</TabsTrigger>
+            <TabsTrigger value="autoSync">{t('navigation.autoSync')}</TabsTrigger>
+            <TabsTrigger value="analytics">{t('categories.other')}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="upload" className="space-y-6">
@@ -189,7 +191,7 @@ const Index = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="autosync">
+          <TabsContent value="autoSync">
             <AutoSyncPanel />
           </TabsContent>
           

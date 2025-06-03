@@ -2,238 +2,304 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
-import { bankSyncService } from '../services/bankSyncService';
+import { BankAccount, BankType } from '../types/banking';
 import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
+import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { AlertTriangle, Plus, RotateCcw, Edit, Trash2 } from 'lucide-react';
-import { BankAccount } from '../types/banking';
+import { AlertTriangle, Plus, Edit, Trash2, RotateCcw } from 'lucide-react';
+import { Alert, AlertDescription } from './ui/alert';
 import { toast } from '../hooks/use-toast';
+import { syncBankAccount } from '../services/bankSyncService';
 
 export const AutoSyncPanel: React.FC = () => {
   const { t } = useTranslation();
   const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount } = useFinanceStore();
   
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [editingAccount, setEditingAccount] = useState<string | null>(null);
-  const [syncing, setSyncing] = useState<string | null>(null);
+  const [syncingAccounts, setSyncingAccounts] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState({
-    bankType: 'max' as const,
+    bankType: '' as BankType,
     username: '',
     password: '',
-    nickname: '',
-    isActive: true
+    nickname: ''
   });
+
+  const resetForm = () => {
+    setFormData({
+      bankType: '' as BankType,
+      username: '',
+      password: '',
+      nickname: ''
+    });
+    setIsAddingAccount(false);
+    setEditingAccount(null);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.bankType || !formData.username || !formData.password) {
+      toast({
+        title: t('auth.error'),
+        description: 'Заполните все обязательные поля',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     if (editingAccount) {
-      updateBankAccount(editingAccount, formData);
-      setEditingAccount(null);
+      updateBankAccount(editingAccount, {
+        ...formData,
+        lastSync: new Date().toISOString()
+      });
+      toast({
+        title: 'Успешно',
+        description: 'Банковский счет обновлен'
+      });
     } else {
       addBankAccount(formData);
-      setShowAddForm(false);
+      toast({
+        title: 'Успешно',
+        description: 'Банковский счет добавлен'
+      });
     }
     
-    setFormData({ bankType: 'max', username: '', password: '', nickname: '', isActive: true });
+    resetForm();
+  };
+
+  const handleEdit = (account: BankAccount) => {
+    setFormData({
+      bankType: account.bankType,
+      username: account.username,
+      password: account.password,
+      nickname: account.nickname || ''
+    });
+    setEditingAccount(account.id);
+    setIsAddingAccount(true);
+  };
+
+  const handleDelete = (accountId: string) => {
+    if (window.confirm('Удалить банковский счет?')) {
+      deleteBankAccount(accountId);
+      toast({
+        title: 'Удалено',
+        description: 'Банковский счет удален'
+      });
+    }
   };
 
   const handleSync = async (account: BankAccount) => {
-    setSyncing(account.id);
+    setSyncingAccounts(prev => new Set([...prev, account.id]));
     
     try {
-      // Используем mock синхронизацию для демонстрации
-      const result = await bankSyncService.mockSync(account);
+      const result = await syncBankAccount(account);
       
       if (result.success) {
-        updateBankAccount(account.id, { lastSync: new Date().toISOString() });
+        updateBankAccount(account.id, {
+          lastSync: new Date().toISOString()
+        });
+        
         toast({
           title: t('autoSync.syncSuccess'),
-          description: `${t('upload.filesProcessed')}: ${result.transactionsCount}`,
+          description: `Получено ${result.transactionsCount} транзакций`
         });
       } else {
-        toast({
-          title: t('autoSync.syncError'),
-          description: result.error,
-          variant: "destructive",
-        });
+        throw new Error(result.error);
       }
     } catch (error) {
       toast({
         title: t('autoSync.syncError'),
-        description: 'Неожиданная ошибка',
-        variant: "destructive",
+        description: error instanceof Error ? error.message : 'Неизвестная ошибка',
+        variant: 'destructive'
       });
     } finally {
-      setSyncing(null);
+      setSyncingAccounts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(account.id);
+        return newSet;
+      });
     }
+  };
+
+  const getBankName = (bankType: BankType) => {
+    return t(`banks.${bankType}`);
   };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            {t('autoSync.title')}
-            <Button onClick={() => setShowAddForm(true)} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              {t('autoSync.addBank')}
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-yellow-800">{t('autoSync.warning')}</h4>
-                <p className="text-sm text-yellow-700 mt-1">{t('autoSync.warningText')}</p>
-              </div>
-            </div>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">{t('autoSync.title')}</h2>
+          <p className="text-gray-600">{t('autoSync.description')}</p>
+        </div>
+        
+        <Button onClick={() => setIsAddingAccount(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          {t('autoSync.addBank')}
+        </Button>
+      </div>
 
-          {(showAddForm || editingAccount) && (
-            <Card className="mb-6">
-              <CardContent className="pt-6">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">{t('autoSync.bankName')}</label>
-                      <Select 
-                        value={formData.bankType} 
-                        onValueChange={(value: 'max' | 'discount' | 'cal') => setFormData({...formData, bankType: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="max">{t('banks.max')}</SelectItem>
-                          <SelectItem value="discount">{t('banks.discount')}</SelectItem>
-                          <SelectItem value="cal">{t('banks.cal')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Псевдоним (опционально)</label>
-                      <Input
-                        value={formData.nickname}
-                        onChange={(e) => setFormData({...formData, nickname: e.target.value})}
-                        placeholder="Мой основной счет"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">{t('autoSync.username')}</label>
-                      <Input
-                        value={formData.username}
-                        onChange={(e) => setFormData({...formData, username: e.target.value})}
-                        required
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium mb-2">{t('autoSync.password')}</label>
-                      <Input
-                        type="password"
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <Button type="submit">{t('autoSync.save')}</Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => {
-                        setShowAddForm(false);
-                        setEditingAccount(null);
-                        setFormData({ bankType: 'max', username: '', password: '', nickname: '', isActive: true });
-                      }}
-                    >
-                      {t('autoSync.cancel')}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
+      {/* Security Warning */}
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>{t('autoSync.warning')}</strong><br />
+          {t('autoSync.warningText')}
+        </AlertDescription>
+      </Alert>
 
-          <div className="space-y-3">
-            {bankAccounts.map((account) => (
-              <div key={account.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-medium">
-                      {account.nickname || t(`banks.${account.bankType}`)}
-                    </h4>
-                    <Badge variant={account.isActive ? "default" : "secondary"}>
-                      {account.isActive ? t('autoSync.active') : t('autoSync.inactive')}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600">{account.username}</p>
-                  {account.lastSync && (
-                    <p className="text-xs text-gray-500">
-                      {t('autoSync.lastSync')}: {new Date(account.lastSync).toLocaleString()}
-                    </p>
-                  )}
+      {/* Add/Edit Form */}
+      {isAddingAccount && (
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              {editingAccount ? 'Редактировать счет' : t('autoSync.addBank')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="bankType">{t('autoSync.bankName')}</Label>
+                  <Select 
+                    value={formData.bankType} 
+                    onValueChange={(value: BankType) => setFormData(prev => ({ ...prev, bankType: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите банк" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="max">{t('banks.max')}</SelectItem>
+                      <SelectItem value="discount">{t('banks.discount')}</SelectItem>
+                      <SelectItem value="cal">{t('banks.cal')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
+
+                <div>
+                  <Label htmlFor="nickname">Название (опционально)</Label>
+                  <Input
+                    id="nickname"
+                    value={formData.nickname}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nickname: e.target.value }))}
+                    placeholder="Мой основной счет"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="username">{t('autoSync.username')}</Label>
+                  <Input
+                    id="username"
+                    value={formData.username}
+                    onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="password">{t('autoSync.password')}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="submit">
+                  {editingAccount ? t('autoSync.save') : t('autoSync.save')}
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  {t('autoSync.cancel')}
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Bank Accounts List */}
+      <div className="grid gap-4">
+        {bankAccounts.map((account) => (
+          <Card key={account.id}>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <h3 className="font-medium">
+                      {account.nickname || getBankName(account.bankType)}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {getBankName(account.bankType)} • {account.username}
+                    </p>
+                    {account.lastSync && (
+                      <p className="text-xs text-gray-400">
+                        {t('autoSync.lastSync')}: {new Date(account.lastSync).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="flex items-center gap-2">
+                  <Badge variant={account.isActive ? "default" : "secondary"}>
+                    {account.isActive ? t('autoSync.active') : t('autoSync.inactive')}
+                  </Badge>
+
                   <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleSync(account)}
-                    disabled={syncing === account.id}
+                    disabled={syncingAccounts.has(account.id)}
+                    className="flex items-center gap-2"
                   >
-                    <RotateCcw className={`h-4 w-4 mr-1 ${syncing === account.id ? 'animate-spin' : ''}`} />
-                    {syncing === account.id ? t('autoSync.syncing') : t('autoSync.syncNow')}
+                    <RotateCcw className={`h-4 w-4 ${syncingAccounts.has(account.id) ? 'animate-spin' : ''}`} />
+                    {syncingAccounts.has(account.id) ? t('autoSync.syncing') : t('autoSync.syncNow')}
                   </Button>
-                  
+
                   <Button
-                    size="sm"
                     variant="outline"
-                    onClick={() => {
-                      setEditingAccount(account.id);
-                      setFormData({
-                        bankType: account.bankType,
-                        username: account.username,
-                        password: account.password,
-                        nickname: account.nickname || '',
-                        isActive: account.isActive
-                      });
-                    }}
+                    size="sm"
+                    onClick={() => handleEdit(account)}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  
+
                   <Button
+                    variant="outline"
                     size="sm"
-                    variant="destructive"
-                    onClick={() => deleteBankAccount(account.id)}
+                    onClick={() => handleDelete(account.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-            ))}
-            
-            {bankAccounts.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>{t('autoSync.description')}</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {bankAccounts.length === 0 && !isAddingAccount && (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">Банковские счета не добавлены</p>
+              <Button onClick={() => setIsAddingAccount(true)}>
+                {t('autoSync.addBank')}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
