@@ -16,7 +16,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   const { t } = useTranslation();
   const { transactions, categories, updateTransactionCategory } = useFinanceStore();
   const [searchText, setSearchText] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -27,7 +27,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
       );
     }
 
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== 'all') {
       filtered = filtered.filter(t => t.category === categoryFilter);
     }
 
@@ -65,7 +65,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
             <SelectValue placeholder={t('transactions.filter')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{t('categories.all')}</SelectItem>
+            <SelectItem value="all">{t('categories.all')}</SelectItem>
             {categories.map(category => (
               <SelectItem key={category.id} value={category.id}>
                 {t(`categories.${category.id}`) || category.name}
@@ -94,8 +94,8 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
                     {transaction.description}
                   </div>
                   <Select
-                    value={transaction.category || ''}
-                    onValueChange={(value) => updateTransactionCategory(transaction.id, value)}
+                    value={transaction.category || 'none'}
+                    onValueChange={(value) => updateTransactionCategory(transaction.id, value === 'none' ? undefined : value)}
                   >
                     <SelectTrigger 
                       className="w-full sm:w-48 h-8 text-xs"
@@ -107,7 +107,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
                       <SelectValue placeholder={t('categories.other')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">{t('categories.other')}</SelectItem>
+                      <SelectItem value="none">{t('categories.other')}</SelectItem>
                       {categories.map(category => (
                         <SelectItem key={category.id} value={category.id}>
                           {t(`categories.${category.id}`) || category.name}
