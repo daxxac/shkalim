@@ -6,6 +6,7 @@ export interface BankAccount {
   bankType: BankType;
   username: string;
   password: string; // будет храниться в зашифрованном виде
+  accessCode?: string; // для банков, которые требуют дополнительный код (например, Discount)
   isActive: boolean;
   lastSync?: string;
   nickname?: string;

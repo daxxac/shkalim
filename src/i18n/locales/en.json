@@ -1,3 +1,4 @@
+
 {
   "navigation": {
     "dashboard": "Dashboard",
@@ -55,6 +56,10 @@
     "bankName": "Bank",
     "username": "Username",
     "password": "Password",
+    "accessCode": "Access Code",
+    "accessCodePlaceholder": "Enter access code",
+    "accessCodeRequired": "Access code is required for Discount Bank",
+    "required": "required",
     "save": "Save",
     "cancel": "Cancel",
     "active": "Active",

@@ -25,10 +25,12 @@ export const BankConnectionForm: React.FC<BankConnectionFormProps> = ({
 }) => {
   const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
+  const [showAccessCode, setShowAccessCode] = useState(false);
   const [formData, setFormData] = useState({
     bankType: editingAccount?.bankType || '' as BankType,
     username: editingAccount?.username || '',
     password: editingAccount?.password || '',
+    accessCode: editingAccount?.accessCode || '',
     nickname: editingAccount?.nickname || '',
     isActive: editingAccount?.isActive ?? true
   });
@@ -40,6 +42,16 @@ export const BankConnectionForm: React.FC<BankConnectionFormProps> = ({
       toast({
         title: t('auth.error'),
         description: t('autoSync.fillFields'),
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Для Discount Bank проверяем наличие кода доступа
+    if (formData.bankType === 'discount' && !formData.accessCode) {
+      toast({
+        title: t('auth.error'),
+        description: t('autoSync.accessCodeRequired'),
         variant: 'destructive'
       });
       return;
@@ -124,7 +136,7 @@ export const BankConnectionForm: React.FC<BankConnectionFormProps> = ({
 
           <div>
             <Label htmlFor="password">
-              {formData.bankType === 'discount' ? t('autoSync.password') : t('autoSync.password')}
+              {t('autoSync.password')}
             </Label>
             <div className="relative">
               <Input
@@ -146,6 +158,37 @@ export const BankConnectionForm: React.FC<BankConnectionFormProps> = ({
               </Button>
             </div>
           </div>
+
+          {formData.bankType === 'discount' && (
+            <div>
+              <Label htmlFor="accessCode" className="flex items-center gap-2">
+                {t('autoSync.accessCode')}
+                <Badge variant="outline" className="text-xs font-normal">
+                  {t('autoSync.required')}
+                </Badge>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="accessCode"
+                  type={showAccessCode ? "text" : "password"}
+                  value={formData.accessCode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, accessCode: e.target.value }))}
+                  required={formData.bankType === 'discount'}
+                  className="pr-10 font-mono"
+                  placeholder={t('autoSync.accessCodePlaceholder')}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1 h-8 w-8 p-0"
+                  onClick={() => setShowAccessCode(!showAccessCode)}
+                >
+                  {showAccessCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             <Button type="submit">
