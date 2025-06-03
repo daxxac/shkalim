@@ -433,7 +433,6 @@ const Index = () => {
               <div className="fixed bottom-8 right-8 z-[9999]">
                 <Button
                   variant="destructive"
-                  size="lg"
                   style={{ border: '3px solid red', zIndex: 9999 }}
                   onClick={() => { console.log('PANIC CLICK!'); handlePanicMode(); }}
                   className="flex items-center gap-2"
