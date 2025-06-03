@@ -15,7 +15,8 @@ export const AnalyticsPanel: React.FC = () => {
       value: Math.abs(
         transactionsByCategory[category.id]?.reduce((sum, t) => sum + Math.min(0, t.amount), 0) || 0
       ),
-      color: category.color
+      color: category.color,
+      category: category.name
     })).filter(item => item.value > 0);
   }, [transactions, categories, getTransactionsByCategory, t]);
 
@@ -34,6 +35,24 @@ export const AnalyticsPanel: React.FC = () => {
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
 
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length > 0) {
+      const data = payload[0];
+      return (
+        <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+          <p className="font-medium text-foreground">{data.payload.name}</p>
+          <p className="text-sm text-muted-foreground">
+            ₪{data.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {((data.value / totalExpenses) * 100).toFixed(1)}%
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Stats */}
@@ -51,7 +70,7 @@ export const AnalyticsPanel: React.FC = () => {
           </div>
           
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">{t('upload.error')}:</span>
+            <span className="text-muted-foreground">{t('navigation.expenses')}:</span>
             <span className="font-bold text-red-600">
               ₪{totalExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
             </span>
@@ -71,7 +90,7 @@ export const AnalyticsPanel: React.FC = () => {
       {/* Expenses by Category */}
       <div className="premium-card p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
-          {t('categories.other')}
+          {t('analytics.categoryBreakdown')}
         </h3>
         
         {categoryData.length > 0 ? (
@@ -83,21 +102,16 @@ export const AnalyticsPanel: React.FC = () => {
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
+                    innerRadius={50}
                     outerRadius={100}
-                    paddingAngle={5}
+                    paddingAngle={0}
                     dataKey="value"
                   >
                     {categoryData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number) => [
-                      `₪${value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}`,
-                      t('dashboard.currentBalance')
-                    ]}
-                  />
+                  <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -129,7 +143,7 @@ export const AnalyticsPanel: React.FC = () => {
           </>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>{t('upload.error')}</p>
+            <p>{t('transactions.noTransactions')}</p>
           </div>
         )}
       </div>
@@ -137,7 +151,7 @@ export const AnalyticsPanel: React.FC = () => {
       {/* Monthly Balance Trend */}
       <div className="premium-card p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
-          {t('dashboard.monthTransactions')}
+          {t('analytics.monthlyTrend')}
         </h3>
         
         {monthlyData.length > 0 ? (
@@ -169,7 +183,7 @@ export const AnalyticsPanel: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
-            <p>{t('upload.error')}</p>
+            <p>{t('transactions.noTransactions')}</p>
           </div>
         )}
       </div>
