@@ -135,3 +135,14 @@
   @apply p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-700/50;
   background: linear-gradient(135deg, #1f1f23 0%, #2a2a2f 100%);
 }
+
+.logo {
+  font-family: 'Montserrat', sans-serif;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.logo-sub {
+  font-family: Lobster, sans-serif;
+}

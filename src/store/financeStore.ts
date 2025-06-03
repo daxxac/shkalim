@@ -35,8 +35,9 @@ interface FinanceState {
   deleteCategory: (id: string) => void;
   
   // New actions
-  resetAllData: () => void;
+  resetAllData: () => Promise<void>; // Changed to Promise due to async nature
   uploadCategoriesCSV: (file: File) => Promise<void>;
+  importSharedData: (data: { transactions: Transaction[]; categories: Category[]; upcomingCharges: UpcomingCharge[] }) => Promise<void>; // New action for importing
   
   getTransactionsByCategory: () => Record<string, Transaction[]>;
   getMonthlyBalance: () => Array<{month: string, balance: number}>;
@@ -504,6 +505,15 @@ export const useFinanceStore = create<FinanceState>()(
           )
         }));
         await get()._updateEncryptedBlob();
+      },
+
+      importSharedData: async (dataToImport) => {
+        set({
+          transactions: dataToImport.transactions || [],
+          categories: dataToImport.categories || defaultCategories, // Use default if imported categories are empty/undefined
+          upcomingCharges: dataToImport.upcomingCharges || [],
+        });
+        await get()._updateEncryptedBlob(); // Re-encrypt the newly imported data
       },
 
       getTransactionsByCategory: () => {

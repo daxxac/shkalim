@@ -9,7 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      shared_data_links: {
+        Row: {
+          access_count: number | null
+          access_limit: number | null
+          created_at: string
+          creator_user_id: string | null
+          encrypted_blob: string
+          expires_at: string | null
+          id: string
+        }
+        Insert: {
+          access_count?: number | null
+          access_limit?: number | null
+          created_at?: string
+          creator_user_id?: string | null
+          encrypted_blob: string
+          expires_at?: string | null
+          id?: string
+        }
+        Update: {
+          access_count?: number | null
+          access_limit?: number | null
+          created_at?: string
+          creator_user_id?: string | null
+          encrypted_blob?: string
+          expires_at?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

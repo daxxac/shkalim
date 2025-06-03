@@ -2,6 +2,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
+import { useTheme } from '../hooks/useTheme'; // Added import
 import { Button } from './ui/button';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
@@ -29,6 +30,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const { t } = useTranslation();
   const { lock } = useFinanceStore();
+  const { theme } = useTheme(); // Added useTheme hook
 
   const handleExportData = () => {
     // TODO: Implement data export
@@ -42,15 +44,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <img 
-                src="/lovable-uploads/bed35785-60af-499c-bacb-f1cfc5f58db7.png" 
+                src="logo.png" 
                 alt="SHKALIM Logo" 
                 className="h-12 w-auto mr-3"
               />
               <div>
-                <h1 className="text-xl font-bold text-foreground">
+                <h1 className="text-xl font-bold text-foreground logo">
                   SHKALIM
                 </h1>
-                <p className="text-xs text-muted-foreground">by daxxac</p>
+                <p className="text-xs text-muted-foreground logo-sub">
+                  <img className="h-[20px] w-auto" src={theme === 'light' ? "/dark.webp" : "/light.webp"} alt="by daxxac" />
+                </p>
               </div>
             </div>
             
