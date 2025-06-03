@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Transaction, BankType, Category } from '../types/finance';
@@ -24,6 +25,7 @@ interface FinanceState {
   setLanguage: (lang: 'ru' | 'en') => void;
   
   addTransactions: (file: File) => Promise<void>;
+  addTransactionsFromSync: (newTransactions: Transaction[]) => void;
   updateTransactionCategory: (id: string, categoryId: string) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
@@ -133,6 +135,33 @@ export const useFinanceStore = create<FinanceState>()(
           console.error('Error adding transactions:', error);
           throw error;
         }
+      },
+
+      addTransactionsFromSync: (newTransactions: Transaction[]) => {
+        const { transactions, categories } = get();
+        
+        // Remove duplicates based on date, amount, and description
+        const existingTransactionKeys = new Set(
+          transactions.map(t => `${t.date}-${t.amount}-${t.description}`)
+        );
+        
+        const uniqueTransactions = newTransactions.filter(t => 
+          !existingTransactionKeys.has(`${t.date}-${t.amount}-${t.description}`)
+        );
+        
+        // Auto-categorize new transactions
+        const categorizedTransactions = uniqueTransactions.map(transaction => ({
+          ...transaction,
+          category: categorizeTransaction(transaction, categories)
+        }));
+        
+        set({ 
+          transactions: [...transactions, ...categorizedTransactions].sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+          )
+        });
+        
+        console.log(`Added ${categorizedTransactions.length} new transactions from sync`);
       },
 
       updateTransactionCategory: (id: string, categoryId: string) => {

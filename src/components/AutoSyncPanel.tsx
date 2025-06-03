@@ -15,7 +15,13 @@ import { LocalSyncSetup } from './LocalSyncSetup';
 
 export const AutoSyncPanel: React.FC = () => {
   const { t } = useTranslation();
-  const { bankAccounts, addBankAccount, updateBankAccount, deleteBankAccount } = useFinanceStore();
+  const { 
+    bankAccounts, 
+    addBankAccount, 
+    updateBankAccount, 
+    deleteBankAccount,
+    addTransactionsFromSync
+  } = useFinanceStore();
   
   const [isAddingAccount, setIsAddingAccount] = useState(false);
   const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
@@ -69,6 +75,11 @@ export const AutoSyncPanel: React.FC = () => {
         updateBankAccount(account.id, {
           lastSync: new Date().toISOString()
         });
+
+        // Добавляем транзакции в store, если они есть
+        if (result.transactions && result.transactions.length > 0) {
+          addTransactionsFromSync(result.transactions);
+        }
         
         toast({
           title: t('autoSync.syncSuccess'),
