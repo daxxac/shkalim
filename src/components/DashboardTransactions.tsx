@@ -28,6 +28,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   const [incomeFilter, setIncomeFilter] = useState(false);
   const [expenseFilter, setExpenseFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [dateFilterType, setDateFilterType] = useState<'transaction' | 'charge'>('transaction');
 
   // Set default date filter to current month
   useEffect(() => {
@@ -67,8 +68,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         const transactionDate = new Date(t.date);
         const chargeDate = t.chargeDate ? new Date(t.chargeDate) : transactionDate;
         
-        // For now, filter by transaction date (can be enhanced to support both)
-        const filterDate = transactionDate;
+        const filterDate = dateFilterType === 'charge' ? chargeDate : transactionDate;
         const startDate = dateFilter.start;
         const endDate = dateFilter.end;
 
@@ -84,18 +84,18 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
     }
 
     return filtered;
-  }, [transactions, searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter]);
+  }, [transactions, searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, dateFilterType]);
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedTransactions = limit ? filteredTransactions.slice(0, limit) : filteredTransactions.slice(startIndex, endIndex);
+  // Calculate pagination only if no limit is applied
+  const totalPages = limit ? 1 : Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const startIndex = limit ? 0 : (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = limit ? limit : startIndex + ITEMS_PER_PAGE;
+  const paginatedTransactions = filteredTransactions.slice(startIndex, endIndex);
 
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter]);
+  }, [searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, dateFilterType]);
 
   // Calculate stats for filtered period
   const stats = useMemo(() => {
@@ -105,15 +105,18 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
     if (dateFilter.start || dateFilter.end) {
       periodTransactions = transactions.filter(t => {
         const transactionDate = new Date(t.date);
+        const chargeDate = t.chargeDate ? new Date(t.chargeDate) : transactionDate;
+        
+        const filterDate = dateFilterType === 'charge' ? chargeDate : transactionDate;
         const startDate = dateFilter.start;
         const endDate = dateFilter.end;
 
         if (startDate && endDate) {
-          return transactionDate >= startDate && transactionDate <= endDate;
+          return filterDate >= startDate && filterDate <= endDate;
         } else if (startDate) {
-          return transactionDate >= startDate;
+          return filterDate >= startDate;
         } else if (endDate) {
-          return transactionDate <= endDate;
+          return filterDate <= endDate;
         }
         return true;
       });
@@ -137,7 +140,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
     const currentBalance = discountTransactions.length > 0 ? discountTransactions[0].balance || 0 : 0;
 
     return { income, expenses, totalDebit, currentBalance };
-  }, [transactions, dateFilter]);
+  }, [transactions, dateFilter, dateFilterType]);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return t('categories.other');
@@ -212,6 +215,8 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         expenseFilter={expenseFilter}
         onIncomeFilterChange={setIncomeFilter}
         onExpenseFilterChange={setExpenseFilter}
+        dateFilterType={dateFilterType}
+        onDateFilterTypeChange={setDateFilterType}
       />
 
       {/* Transactions List */}
@@ -346,11 +351,11 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         </Card>
       )}
 
-      {limit && transactions.length > limit && (
+      {limit && filteredTransactions.length > limit && (
         <Card className="premium-card">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">
-              {t('transactions.showing')} {Math.min(limit, paginatedTransactions.length)} {t('transactions.of')} {transactions.length.toLocaleString()}
+              {t('transactions.showing')} {Math.min(limit, paginatedTransactions.length)} {t('transactions.of')} {filteredTransactions.length.toLocaleString()}
             </p>
           </CardContent>
         </Card>

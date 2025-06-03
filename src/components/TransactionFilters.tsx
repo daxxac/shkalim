@@ -26,6 +26,8 @@ interface TransactionFiltersProps {
   expenseFilter: boolean;
   onIncomeFilterChange: (value: boolean) => void;
   onExpenseFilterChange: (value: boolean) => void;
+  dateFilterType?: 'transaction' | 'charge';
+  onDateFilterTypeChange?: (type: 'transaction' | 'charge') => void;
 }
 
 export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
@@ -39,10 +41,11 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   incomeFilter,
   expenseFilter,
   onIncomeFilterChange,
-  onExpenseFilterChange
+  onExpenseFilterChange,
+  dateFilterType = 'transaction',
+  onDateFilterTypeChange
 }) => {
   const { t } = useTranslation();
-  const [dateFilterType, setDateFilterType] = React.useState<'transaction' | 'charge'>('transaction');
 
   const clearDateFilter = () => {
     onDateFilterChange({});
@@ -73,7 +76,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             placeholder={t('transactions.search')}
             value={searchText}
             onChange={(e) => onSearchTextChange(e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-white text-foreground"
+            className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
           />
         </div>
 
@@ -81,7 +84,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         <select
           value={categoryFilter}
           onChange={(e) => onCategoryFilterChange(e.target.value)}
-          className="px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-white text-foreground"
+          className="px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
         >
           <option value="">{t('categories.all')}</option>
           {categories.map(category => (
@@ -113,24 +116,26 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
       </div>
 
       {/* Date Filter Type Toggle */}
-      <div className="flex gap-2">
-        <Toggle
-          pressed={dateFilterType === 'transaction'}
-          onPressedChange={(pressed) => setDateFilterType(pressed ? 'transaction' : 'charge')}
-          variant="outline"
-          className="text-sm"
-        >
-          Дата транзакции
-        </Toggle>
-        <Toggle
-          pressed={dateFilterType === 'charge'}
-          onPressedChange={(pressed) => setDateFilterType(pressed ? 'charge' : 'transaction')}
-          variant="outline"
-          className="text-sm"
-        >
-          Дата списания
-        </Toggle>
-      </div>
+      {onDateFilterTypeChange && (
+        <div className="flex gap-2">
+          <Toggle
+            pressed={dateFilterType === 'transaction'}
+            onPressedChange={(pressed) => onDateFilterTypeChange(pressed ? 'transaction' : 'charge')}
+            variant="outline"
+            className="text-sm"
+          >
+            Дата транзакции
+          </Toggle>
+          <Toggle
+            pressed={dateFilterType === 'charge'}
+            onPressedChange={(pressed) => onDateFilterTypeChange(pressed ? 'charge' : 'transaction')}
+            variant="outline"
+            className="text-sm"
+          >
+            Дата списания
+          </Toggle>
+        </div>
+      )}
 
       {/* Date Filters */}
       <div className="flex flex-wrap gap-4">

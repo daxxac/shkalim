@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { ScrollArea } from './ui/scroll-area';
 
 export const AnalyticsPanel: React.FC = () => {
   const { t } = useTranslation();
@@ -105,30 +106,32 @@ export const AnalyticsPanel: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {incomeData.map((item, index) => {
-              const percentage = (item.value / totalIncome) * 100;
-              return (
-                <div key={index} className="flex items-center gap-3 p-2 rounded">
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-muted-foreground truncate block">{item.name}</span>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-medium text-foreground">
-                      ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+          <ScrollArea className="h-64">
+            <div className="space-y-2 pr-4">
+              {incomeData.map((item, index) => {
+                const percentage = (item.value / totalIncome) * 100;
+                return (
+                  <div key={index} className="flex items-center gap-3 p-2 rounded">
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-muted-foreground truncate block">{item.name}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {percentage.toFixed(1)}%
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm font-medium text-foreground">
+                        ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {percentage.toFixed(1)}%
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
         </div>
       )}
 
@@ -160,30 +163,32 @@ export const AnalyticsPanel: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {expenseData.map((item, index) => {
-              const percentage = (item.value / totalExpenses) * 100;
-              return (
-                <div key={index} className="flex items-center gap-3 p-2 rounded">
-                  <div 
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm text-muted-foreground truncate block">{item.name}</span>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-medium text-foreground">
-                      ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+          <ScrollArea className="h-64">
+            <div className="space-y-2 pr-4">
+              {expenseData.map((item, index) => {
+                const percentage = (item.value / totalExpenses) * 100;
+                return (
+                  <div key={index} className="flex items-center gap-3 p-2 rounded">
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-muted-foreground truncate block">{item.name}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      {percentage.toFixed(1)}%
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm font-medium text-foreground">
+                        ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {percentage.toFixed(1)}%
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </ScrollArea>
         </div>
       )}
 
