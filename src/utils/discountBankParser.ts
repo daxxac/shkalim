@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { Transaction } from '../types/finance';
 
@@ -34,6 +33,24 @@ const DISCOUNT_CREDIT_COLUMNS = {
   balance: '₪ יתרה משוערת',
   notes: 'הערות'
 };
+
+// Keywords to identify credit card charges from other banks that should be filtered out
+const CREDIT_CARD_CHARGE_KEYWORDS = [
+  'כ.א.ל',
+  'כ.א.ל חיוב',
+  'cal',
+  'מקס איט פי',
+  'מקס איט פי חיוב',
+  'max eat pay',
+  'max',
+  'ישראכרט',
+  'לאומי קארד',
+  'חיוב כרטיס אשראי',
+  'ויזה כ.א.ל',
+  'מסטרקארד כ.א.ל',
+  'ויזה מקס',
+  'מסטרקארד מקס'
+];
 
 export function parseDiscountBankFile(file: ArrayBuffer, fileType?: string): DiscountBankTransaction[] {
   try {
@@ -158,8 +175,10 @@ function parseDiscountTable(rawData: any[], table: TableInfo): DiscountBankTrans
     
     try {
       const transaction = parseDiscountBankRow(row, table.columnIndices, i + 1);
-      if (transaction) {
+      if (transaction && !shouldFilterOutTransaction(transaction)) {
         transactions.push(transaction);
+      } else if (transaction && shouldFilterOutTransaction(transaction)) {
+        console.log(`Filtered out credit card charge: ${transaction.description}`);
       }
     } catch (error) {
       console.warn(`Error parsing row ${i + 1}:`, error);
@@ -167,6 +186,20 @@ function parseDiscountTable(rawData: any[], table: TableInfo): DiscountBankTrans
   }
   
   return transactions;
+}
+
+function shouldFilterOutTransaction(transaction: DiscountBankTransaction): boolean {
+  const description = transaction.description.toLowerCase();
+  
+  // Only filter out negative amounts (charges)
+  if (transaction.amount >= 0) {
+    return false;
+  }
+  
+  // Check if description contains any credit card charge keywords
+  return CREDIT_CARD_CHARGE_KEYWORDS.some(keyword => 
+    description.includes(keyword.toLowerCase())
+  );
 }
 
 function parseDiscountBankRow(
