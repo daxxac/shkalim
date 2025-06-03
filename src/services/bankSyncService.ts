@@ -2,16 +2,24 @@
 import { BankAccount, SyncResult } from '../types/banking';
 import { Transaction } from '../types/finance';
 
-// Примечание: Puppeteer работает только в Node.js окружении
-// Для веб-приложения нужен отдельный API сервер
 class BankSyncService {
-  private apiUrl = process.env.NODE_ENV === 'development' 
-    ? 'http://localhost:3001/api' 
-    : '/api';
+  private localApiUrl = 'http://localhost:3001/api';
 
   async syncAccount(account: BankAccount): Promise<SyncResult> {
     try {
-      const response = await fetch(`${this.apiUrl}/sync`, {
+      // Проверяем доступность локального сервера
+      try {
+        await fetch(`${this.localApiUrl}/health`, { 
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          mode: 'cors',
+        });
+      } catch (error) {
+        throw new Error('Локальный сервер не работает. Запустите локальный сервер синхронизации');
+      }
+
+      // Отправляем запрос на синхронизацию
+      const response = await fetch(`${this.localApiUrl}/sync`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -20,11 +28,13 @@ class BankSyncService {
           bankType: account.bankType,
           username: account.username,
           password: account.password,
+          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 30 days
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Sync failed');
+        const errorText = await response.text();
+        throw new Error(errorText || 'Ошибка синхронизации');
       }
 
       const data = await response.json();
@@ -36,7 +46,7 @@ class BankSyncService {
       console.error('Bank sync error:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: error instanceof Error ? error.message : 'Неизвестная ошибка',
       };
     }
   }
@@ -51,6 +61,16 @@ class BankSyncService {
       success: Math.random() > 0.3, // 70% успешных синхронизаций
       transactionsCount: Math.floor(Math.random() * 50) + 1,
     };
+  }
+
+  // Проверка доступности локального сервера
+  async checkServerRunning(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.localApiUrl}/health`, { mode: 'cors' });
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
   }
 }
 
