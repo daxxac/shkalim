@@ -42,6 +42,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   onExpenseFilterChange
 }) => {
   const { t } = useTranslation();
+  const [dateFilterType, setDateFilterType] = React.useState<'transaction' | 'charge'>('transaction');
 
   const clearDateFilter = () => {
     onDateFilterChange({});
@@ -49,8 +50,21 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
 
   const hasDateFilter = dateFilter.start || dateFilter.end;
 
+  const getCategoryDisplayName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      const translatedName = t(`categories.${category.id}`);
+      // If translation is the same as the key, show the original name without kebab-case
+      if (translatedName === `categories.${category.id}`) {
+        return category.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      return translatedName;
+    }
+    return categoryId;
+  };
+
   return (
-    <div className="space-y-4 p-4 premium-card">
+    <div className="space-y-4 p-4 bg-card border border-border rounded-lg">
       <div className="flex flex-wrap gap-4">
         {/* Search */}
         <div className="flex-1 min-w-64">
@@ -59,7 +73,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             placeholder={t('transactions.search')}
             value={searchText}
             onChange={(e) => onSearchTextChange(e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
+            className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-white text-foreground"
           />
         </div>
 
@@ -67,12 +81,12 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         <select
           value={categoryFilter}
           onChange={(e) => onCategoryFilterChange(e.target.value)}
-          className="px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
+          className="px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-white text-foreground"
         >
           <option value="">{t('categories.all')}</option>
           {categories.map(category => (
             <option key={category.id} value={category.id}>
-              {t(`categories.${category.id}`) || category.name}
+              {getCategoryDisplayName(category.id)}
             </option>
           ))}
         </select>
@@ -98,12 +112,32 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         </Toggle>
       </div>
 
+      {/* Date Filter Type Toggle */}
+      <div className="flex gap-2">
+        <Toggle
+          pressed={dateFilterType === 'transaction'}
+          onPressedChange={(pressed) => setDateFilterType(pressed ? 'transaction' : 'charge')}
+          variant="outline"
+          className="text-sm"
+        >
+          Дата транзакции
+        </Toggle>
+        <Toggle
+          pressed={dateFilterType === 'charge'}
+          onPressedChange={(pressed) => setDateFilterType(pressed ? 'charge' : 'transaction')}
+          variant="outline"
+          className="text-sm"
+        >
+          Дата списания
+        </Toggle>
+      </div>
+
       {/* Date Filters */}
       <div className="flex flex-wrap gap-4">
         {/* Start Date */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground">
-            Дата с:
+            {dateFilterType === 'transaction' ? 'Дата транзакции с:' : 'Дата списания с:'}
           </label>
           <Popover>
             <PopoverTrigger asChild>
@@ -133,7 +167,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         {/* End Date */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground">
-            Дата до:
+            {dateFilterType === 'transaction' ? 'Дата транзакции до:' : 'Дата списания до:'}
           </label>
           <Popover>
             <PopoverTrigger asChild>

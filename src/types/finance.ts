@@ -1,6 +1,8 @@
+
 export interface Transaction {
   id: string;
-  date: string;
+  date: string; // дата транзакции
+  chargeDate?: string; // дата списания (для кредитных карт)
   description: string;
   amount: number;
   balance?: number;
@@ -36,6 +38,7 @@ export interface BankConfig {
   amountColumn: string;
   balanceColumn?: string;
   referenceColumn?: string;
+  chargeDateColumn?: string;
   encoding?: string;
   dateFormat?: string;
 }
@@ -46,9 +49,14 @@ export interface FilterOptions {
     start: string;
     end: string;
   };
+  chargeDateRange?: {
+    start: string;
+    end: string;
+  };
   amountRange?: {
     min: number;
     max: number;
   };
   searchText?: string;
+  dateFilterType?: 'transaction' | 'charge';
 }

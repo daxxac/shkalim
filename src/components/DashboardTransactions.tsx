@@ -65,15 +65,19 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
     if (dateFilter.start || dateFilter.end) {
       filtered = filtered.filter(t => {
         const transactionDate = new Date(t.date);
+        const chargeDate = t.chargeDate ? new Date(t.chargeDate) : transactionDate;
+        
+        // For now, filter by transaction date (can be enhanced to support both)
+        const filterDate = transactionDate;
         const startDate = dateFilter.start;
         const endDate = dateFilter.end;
 
         if (startDate && endDate) {
-          return transactionDate >= startDate && transactionDate <= endDate;
+          return filterDate >= startDate && filterDate <= endDate;
         } else if (startDate) {
-          return transactionDate >= startDate;
+          return filterDate >= startDate;
         } else if (endDate) {
-          return transactionDate <= endDate;
+          return filterDate <= endDate;
         }
         return true;
       });
@@ -220,6 +224,11 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
                   <div className="flex items-center gap-3 mb-2">
                     <div className="text-sm text-muted-foreground">
                       {new Date(transaction.date).toLocaleDateString()}
+                      {transaction.chargeDate && transaction.chargeDate !== transaction.date && (
+                        <span className="ml-2 text-orange-600">
+                          (списание: {new Date(transaction.chargeDate).toLocaleDateString()})
+                        </span>
+                      )}
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {transaction.bank?.toUpperCase()}

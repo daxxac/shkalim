@@ -8,11 +8,24 @@ export const AnalyticsPanel: React.FC = () => {
   const { t } = useTranslation();
   const { transactions, categories, getTransactionsByCategory, getMonthlyBalance } = useFinanceStore();
 
+  const getCategoryDisplayName = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      const translatedName = t(`categories.${category.id}`);
+      // If translation is the same as the key, show the original name without kebab-case
+      if (translatedName === `categories.${category.id}`) {
+        return category.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+      return translatedName;
+    }
+    return categoryId;
+  };
+
   const { expenseData, incomeData } = React.useMemo(() => {
     const transactionsByCategory = getTransactionsByCategory();
     
     const expenses = categories.map(category => ({
-      name: t(`categories.${category.id}`) || category.name,
+      name: getCategoryDisplayName(category.id),
       value: Math.abs(
         transactionsByCategory[category.id]?.reduce((sum, t) => sum + Math.min(0, t.amount), 0) || 0
       ),
@@ -21,7 +34,7 @@ export const AnalyticsPanel: React.FC = () => {
     })).filter(item => item.value > 0);
 
     const income = categories.map(category => ({
-      name: t(`categories.${category.id}`) || category.name,
+      name: getCategoryDisplayName(category.id),
       value: transactionsByCategory[category.id]?.reduce((sum, t) => sum + Math.max(0, t.amount), 0) || 0,
       color: category.color,
       category: category.name
@@ -92,19 +105,19 @@ export const AnalyticsPanel: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {incomeData.map((item, index) => {
               const percentage = (item.value / totalIncome) * 100;
               return (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm text-muted-foreground">{item.name}</span>
+                <div key={index} className="flex items-center gap-3 p-2 rounded">
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground truncate block">{item.name}</span>
                   </div>
-                  <div className="text-left">
+                  <div className="text-right flex-shrink-0">
                     <div className="text-sm font-medium text-foreground">
                       ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                     </div>
@@ -147,19 +160,19 @@ export const AnalyticsPanel: React.FC = () => {
             </ResponsiveContainer>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
             {expenseData.map((item, index) => {
               const percentage = (item.value / totalExpenses) * 100;
               return (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm text-muted-foreground">{item.name}</span>
+                <div key={index} className="flex items-center gap-3 p-2 rounded">
+                  <div 
+                    className="w-3 h-3 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground truncate block">{item.name}</span>
                   </div>
-                  <div className="text-left">
+                  <div className="text-right flex-shrink-0">
                     <div className="text-sm font-medium text-foreground">
                       ₪{item.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                     </div>
