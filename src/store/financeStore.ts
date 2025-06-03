@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Transaction, BankType, Category } from '../types/finance';
@@ -22,7 +21,7 @@ interface FinanceState {
   panicMode: () => void;
   setLanguage: (lang: 'ru' | 'en') => void;
   
-  addTransactions: (file: File) => Promise<void>;
+  addTransactions: (file: File, bankType?: string) => Promise<void>;
   updateTransactionCategory: (id: string, categoryId: string) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
@@ -95,22 +94,36 @@ export const useFinanceStore = create<FinanceState>()(
         set({ currentLanguage: lang });
       },
 
-      addTransactions: async (file: File) => {
+      addTransactions: async (file: File, bankType?: string) => {
         try {
-          const newTransactions = await parseFileData(file);
+          const newTransactions = await parseFileData(file, bankType);
           const { transactions, categories } = get();
           
-          // Remove duplicates based on date, amount, and description
+          // Enhanced duplicate detection
           const existingTransactionKeys = new Set(
-            transactions.map(t => `${t.date}-${t.amount}-${t.description}`)
+            transactions.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
           );
           
-          const uniqueTransactions = newTransactions.filter(t => 
-            !existingTransactionKeys.has(`${t.date}-${t.amount}-${t.description}`)
-          );
+          const uniqueTransactions = newTransactions.filter(t => {
+            const key = `${t.date}-${t.amount}-${t.description.substring(0, 50)}`;
+            return !existingTransactionKeys.has(key);
+          });
+          
+          // Filter out duplicate credit card charges if we already have detailed transactions
+          const filteredTransactions = uniqueTransactions.filter(newTransaction => {
+            // If this is a CAL charge (כ.א.ל חיוב), check if we already have detailed CAL transactions
+            if (newTransaction.description.includes('כ.א.ל חיוב') || newTransaction.description.includes('CAL')) {
+              const hasDetailedCALTransactions = transactions.some(existing => 
+                existing.bank === 'cal' && 
+                Math.abs(new Date(existing.date).getTime() - new Date(newTransaction.date).getTime()) < 7 * 24 * 60 * 60 * 1000 // within 7 days
+              );
+              return !hasDetailedCALTransactions;
+            }
+            return true;
+          });
           
           // Auto-categorize new transactions
-          const categorizedTransactions = uniqueTransactions.map(transaction => ({
+          const categorizedTransactions = filteredTransactions.map(transaction => ({
             ...transaction,
             category: categorizeTransaction(transaction, categories)
           }));

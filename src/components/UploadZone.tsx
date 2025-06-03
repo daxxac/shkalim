@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
@@ -76,7 +77,8 @@ export const UploadZone: React.FC = () => {
             <SelectItem value="auto">Автоопределение</SelectItem>
             <SelectItem value="discount-transactions">Дисконт - Транзакции по счету</SelectItem>
             <SelectItem value="discount-credit">Дисконт - Списания по кредитке</SelectItem>
-            <SelectItem value="max">Банк Макс</SelectItem>
+            <SelectItem value="max-shekel">Макс - Платежи в шекелях</SelectItem>
+            <SelectItem value="max-foreign">Макс - Платежи в валютах</SelectItem>
             <SelectItem value="cal">CAL</SelectItem>
           </SelectContent>
         </Select>
@@ -127,8 +129,8 @@ export const UploadZone: React.FC = () => {
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank={t('banks.max')}
-          format="CSV, XLSX"
+          bank="Макс - Платежи"
+          format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
       </div>

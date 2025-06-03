@@ -2,6 +2,8 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { Transaction, BankType, BankConfig } from '../types/finance';
 import { parseDiscountBankFile, convertDiscountToStandardTransaction } from './discountBankParser';
+import { parseMaxBankFile, convertMaxToStandardTransaction } from './maxBankParser';
+import { parseCalBankFile, convertCalToStandardTransaction } from './calBankParser';
 
 const bankConfigs: Record<BankType, BankConfig> = {
   max: {
@@ -47,30 +49,79 @@ export async function parseFileData(file: File, bankType?: string): Promise<Tran
     } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
       const arrayBuffer = await file.arrayBuffer();
       
-      // Check if this is a specific Discount Bank file type
+      // Handle specific bank types
       if (bankType === 'discount-transactions' || bankType === 'discount-credit') {
         try {
           const discountTransactions = parseDiscountBankFile(arrayBuffer, bankType);
           if (discountTransactions.length > 0) {
-            console.log(`Successfully parsed ${discountTransactions.length} transactions with enhanced Discount Bank parser`);
+            console.log(`Successfully parsed ${discountTransactions.length} transactions with Discount Bank parser`);
             return discountTransactions.map(convertDiscountToStandardTransaction);
           }
         } catch (discountError) {
-          console.log('Enhanced Discount Bank parsing failed:', discountError);
+          console.log('Discount Bank parsing failed:', discountError);
           throw discountError;
         }
       }
       
-      // For auto-detection or other bank types, try enhanced Discount Bank parsing first
+      if (bankType === 'max-shekel' || bankType === 'max-foreign') {
+        try {
+          const maxTransactions = parseMaxBankFile(arrayBuffer, bankType);
+          if (maxTransactions.length > 0) {
+            console.log(`Successfully parsed ${maxTransactions.length} transactions with MAX Bank parser`);
+            return maxTransactions.map(convertMaxToStandardTransaction);
+          }
+        } catch (maxError) {
+          console.log('MAX Bank parsing failed:', maxError);
+          throw maxError;
+        }
+      }
+      
+      if (bankType === 'cal') {
+        try {
+          const calTransactions = parseCalBankFile(arrayBuffer);
+          if (calTransactions.length > 0) {
+            console.log(`Successfully parsed ${calTransactions.length} transactions with CAL Bank parser`);
+            return calTransactions.map(convertCalToStandardTransaction);
+          }
+        } catch (calError) {
+          console.log('CAL Bank parsing failed:', calError);
+          throw calError;
+        }
+      }
+      
+      // For auto-detection, try enhanced parsers first
       if (!bankType || bankType === 'auto') {
+        // Try Discount Bank first
         try {
           const discountTransactions = parseDiscountBankFile(arrayBuffer);
           if (discountTransactions.length > 0) {
-            console.log(`Successfully parsed ${discountTransactions.length} transactions with enhanced Discount Bank parser`);
+            console.log(`Successfully parsed ${discountTransactions.length} transactions with Discount Bank parser`);
             return discountTransactions.map(convertDiscountToStandardTransaction);
           }
         } catch (discountError) {
-          console.log('Enhanced Discount Bank parsing failed, falling back to generic XLSX parsing:', discountError);
+          console.log('Auto-detection: Discount Bank parsing failed:', discountError);
+        }
+        
+        // Try MAX Bank
+        try {
+          const maxTransactions = parseMaxBankFile(arrayBuffer, 'max-shekel');
+          if (maxTransactions.length > 0) {
+            console.log(`Successfully parsed ${maxTransactions.length} transactions with MAX Bank parser`);
+            return maxTransactions.map(convertMaxToStandardTransaction);
+          }
+        } catch (maxError) {
+          console.log('Auto-detection: MAX Bank parsing failed:', maxError);
+        }
+        
+        // Try CAL Bank
+        try {
+          const calTransactions = parseCalBankFile(arrayBuffer);
+          if (calTransactions.length > 0) {
+            console.log(`Successfully parsed ${calTransactions.length} transactions with CAL Bank parser`);
+            return calTransactions.map(convertCalToStandardTransaction);
+          }
+        } catch (calError) {
+          console.log('Auto-detection: CAL Bank parsing failed:', calError);
         }
       }
       
