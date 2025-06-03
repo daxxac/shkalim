@@ -114,7 +114,7 @@ export const useFinanceStore = create<FinanceState>()(
             encoding: 'UTF-8',
             complete: (result) => {
               try {
-                const { transactions } = get();
+                const { transactions, categories } = get();
                 const categoriesMap: Record<string, string> = {};
                 
                 // Parse CSV data to create mapping
@@ -123,33 +123,74 @@ export const useFinanceStore = create<FinanceState>()(
                   const category = row['категория'] || row['category'];
                   
                   if (transaction && category) {
-                    categoriesMap[transaction.toLowerCase()] = category;
+                    // Store both exact match and lowercase for flexible matching
+                    categoriesMap[transaction.trim()] = category.trim();
+                    categoriesMap[transaction.toLowerCase().trim()] = category.trim();
                   }
                 });
 
+                console.log('Categories mapping created:', categoriesMap);
+
                 // Update transactions with new categories
+                let updatedCount = 0;
                 const updatedTransactions = transactions.map(transaction => {
-                  const matchingCategory = Object.keys(categoriesMap).find(key =>
-                    transaction.description.toLowerCase().includes(key)
-                  );
+                  // Try exact match first
+                  let matchingCategory = categoriesMap[transaction.description.trim()];
+                  
+                  // If no exact match, try lowercase match
+                  if (!matchingCategory) {
+                    matchingCategory = categoriesMap[transaction.description.toLowerCase().trim()];
+                  }
+                  
+                  // If still no match, try partial matching for backwards compatibility
+                  if (!matchingCategory) {
+                    const matchingKey = Object.keys(categoriesMap).find(key =>
+                      transaction.description.toLowerCase().includes(key.toLowerCase()) ||
+                      key.toLowerCase().includes(transaction.description.toLowerCase())
+                    );
+                    if (matchingKey) {
+                      matchingCategory = categoriesMap[matchingKey];
+                    }
+                  }
                   
                   if (matchingCategory) {
-                    const categoryName = categoriesMap[matchingCategory];
-                    const existingCategory = get().categories.find(c => 
-                      c.name.toLowerCase() === categoryName.toLowerCase()
-                    );
+                    // Handle special categories
+                    let categoryId = 'other';
                     
-                    if (existingCategory) {
-                      return { ...transaction, category: existingCategory.id };
+                    if (matchingCategory === '7gens') {
+                      categoryId = 'other'; // or create a specific category for 7gens
+                    } else if (matchingCategory === 'Google StoryMatrix') {
+                      categoryId = 'other'; // or create a specific category
+                    } else if (matchingCategory === '???') {
+                      categoryId = 'other';
+                    } else {
+                      // Try to find existing category by name
+                      const existingCategory = categories.find(c => 
+                        c.name.toLowerCase() === matchingCategory.toLowerCase() ||
+                        c.id.toLowerCase() === matchingCategory.toLowerCase()
+                      );
+                      
+                      if (existingCategory) {
+                        categoryId = existingCategory.id;
+                      }
                     }
+                    
+                    if (transaction.category !== categoryId) {
+                      updatedCount++;
+                      console.log(`Updated transaction: "${transaction.description}" -> category: "${categoryId}"`);
+                    }
+                    
+                    return { ...transaction, category: categoryId };
                   }
                   
                   return transaction;
                 });
 
+                console.log(`Updated ${updatedCount} transactions with categories from CSV`);
                 set({ transactions: updatedTransactions });
                 resolve();
               } catch (error) {
+                console.error('Error processing categories CSV:', error);
                 reject(error);
               }
             },
