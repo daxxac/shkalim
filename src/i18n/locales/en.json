@@ -81,5 +81,21 @@
     "syncError": "Sync failed",
     "warning": "Security Warning",
     "warningText": "Bank credentials are stored encrypted in your browser. This feature uses automation to access your bank account. Use at your own risk."
+  },
+  "security": {
+    "title": "Security Settings",
+    "dataProtection": "Protect Your Data",
+    "encryptionInfo": "The password will be used to encrypt all financial data on this device.",
+    "newPassword": "New Master Password",
+    "confirmPassword": "Confirm Password",
+    "passwordPlaceholder": "At least 8 characters",
+    "confirmPasswordPlaceholder": "Enter password again",
+    "showPassword": "Show Password",
+    "importantRemember": "Important to Remember!",
+    "noRecovery": "If you forget the password, you won't be able to access the data. There is no recovery option.",
+    "cancel": "Cancel",
+    "setPassword": "Set Password",
+    "passwordMinLength": "Password must contain at least 8 characters",
+    "passwordMismatch": "Passwords do not match"
   }
 }
