@@ -8,7 +8,7 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { AlertTriangle, Plus, Sync, Edit, Trash2 } from 'lucide-react';
+import { AlertTriangle, Plus, RotateCcw, Edit, Trash2 } from 'lucide-react';
 import { BankAccount } from '../types/banking';
 import { toast } from '../hooks/use-toast';
 
@@ -21,10 +21,11 @@ export const AutoSyncPanel: React.FC = () => {
   const [syncing, setSyncing] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
-    bankType: 'sberbank' as const,
+    bankType: 'max' as const,
     username: '',
     password: '',
-    nickname: ''
+    nickname: '',
+    isActive: true
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -38,7 +39,7 @@ export const AutoSyncPanel: React.FC = () => {
       setShowAddForm(false);
     }
     
-    setFormData({ bankType: 'sberbank', username: '', password: '', nickname: '' });
+    setFormData({ bankType: 'max', username: '', password: '', nickname: '', isActive: true });
   };
 
   const handleSync = async (account: BankAccount) => {
@@ -104,15 +105,15 @@ export const AutoSyncPanel: React.FC = () => {
                       <label className="block text-sm font-medium mb-2">{t('autoSync.bankName')}</label>
                       <Select 
                         value={formData.bankType} 
-                        onValueChange={(value: any) => setFormData({...formData, bankType: value})}
+                        onValueChange={(value: 'max' | 'discount' | 'cal') => setFormData({...formData, bankType: value})}
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="sberbank">{t('banks.sberbank')}</SelectItem>
-                          <SelectItem value="tinkoff">{t('banks.tinkoff')}</SelectItem>
-                          <SelectItem value="alfabank">{t('banks.alfabank')}</SelectItem>
+                          <SelectItem value="max">{t('banks.max')}</SelectItem>
+                          <SelectItem value="discount">{t('banks.discount')}</SelectItem>
+                          <SelectItem value="cal">{t('banks.cal')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -156,7 +157,7 @@ export const AutoSyncPanel: React.FC = () => {
                       onClick={() => {
                         setShowAddForm(false);
                         setEditingAccount(null);
-                        setFormData({ bankType: 'sberbank', username: '', password: '', nickname: '' });
+                        setFormData({ bankType: 'max', username: '', password: '', nickname: '', isActive: true });
                       }}
                     >
                       {t('autoSync.cancel')}
@@ -193,7 +194,7 @@ export const AutoSyncPanel: React.FC = () => {
                     onClick={() => handleSync(account)}
                     disabled={syncing === account.id}
                   >
-                    <Sync className={`h-4 w-4 mr-1 ${syncing === account.id ? 'animate-spin' : ''}`} />
+                    <RotateCcw className={`h-4 w-4 mr-1 ${syncing === account.id ? 'animate-spin' : ''}`} />
                     {syncing === account.id ? t('autoSync.syncing') : t('autoSync.syncNow')}
                   </Button>
                   
@@ -206,7 +207,8 @@ export const AutoSyncPanel: React.FC = () => {
                         bankType: account.bankType,
                         username: account.username,
                         password: account.password,
-                        nickname: account.nickname || ''
+                        nickname: account.nickname || '',
+                        isActive: account.isActive
                       });
                     }}
                   >

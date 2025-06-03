@@ -18,7 +18,7 @@ export interface Category {
   rules: string[];
 }
 
-export type BankType = 'sberbank' | 'tinkoff' | 'alfabank' | 'unknown';
+export type BankType = 'max' | 'discount' | 'cal' | 'unknown';
 
 export interface BankConfig {
   name: string;

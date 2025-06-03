@@ -3,7 +3,7 @@
   "app": {
     "title": "Personal Finance Manager",
     "subtitle": "Advanced Banking Analysis",
-    "description": "Personal finance management system with support for Russian banks"
+    "description": "Personal finance management system with support for Israeli banks"
   },
   "auth": {
     "masterPassword": "Master Password",
@@ -29,7 +29,7 @@
     "title": "Upload Bank Files",
     "dragDrop": "Drag files or click to select",
     "dropHere": "Drop to upload",
-    "supportedFormats": "Supports CSV, XLSX files from banks: Sberbank, Tinkoff, Alfa Bank",
+    "supportedFormats": "Supports CSV, XLSX files from banks: MAX, Discount Bank, CAL",
     "processing": "Processing files...",
     "success": "Files uploaded successfully",
     "error": "Error processing files",
@@ -37,9 +37,9 @@
     "filesNotProcessed": "files not processed"
   },
   "banks": {
-    "sberbank": "Sberbank",
-    "tinkoff": "Tinkoff Bank",
-    "alfabank": "Alfa Bank"
+    "max": "Bank MAX",
+    "discount": "Discount Bank",
+    "cal": "CAL (Mizrahi)"
   },
   "navigation": {
     "dashboard": "Dashboard",
