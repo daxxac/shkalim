@@ -23,7 +23,8 @@
     "totalTransactions": "Total Transactions",
     "currentBalance": "Current Balance",
     "monthTransactions": "This Month's Transactions",
-    "loading": "Loading system..."
+    "loading": "Loading system...",
+    "recentTransactions": "Recent Transactions"
   },
   "upload": {
     "title": "Upload Bank Files",

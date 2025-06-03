@@ -23,7 +23,8 @@
     "totalTransactions": "Всего операций",
     "currentBalance": "Текущий баланс",
     "monthTransactions": "Операций в этом месяце",
-    "loading": "Загрузка системы..."
+    "loading": "Загрузка системы...",
+    "recentTransactions": "Последние операции"
   },
   "upload": {
     "title": "Загрузка банковских файлов",
