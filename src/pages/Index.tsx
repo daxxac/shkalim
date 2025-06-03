@@ -1,16 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { UploadZone } from '../components/UploadZone';
-import { TransactionTable } from '../components/TransactionTable';
+import { DashboardTransactions } from '../components/DashboardTransactions';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { SecurityModal } from '../components/SecurityModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { DataManagement } from '../components/DataManagement';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react';
+import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar, DollarSign, CreditCard } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 
 const Index = () => {
@@ -155,104 +155,155 @@ const Index = () => {
     .filter(t => t.amount < 0)
     .reduce((sum, t) => sum + t.amount, 0));
 
+  const currentWeek = new Date();
+  const weekStart = new Date(currentWeek.setDate(currentWeek.getDate() - currentWeek.getDay()));
+  const weekTransactions = transactions.filter(t => {
+    const transactionDate = new Date(t.date);
+    return transactionDate >= weekStart;
+  });
+  
+  const weekExpenses = Math.abs(weekTransactions
+    .filter(t => t.amount < 0)
+    .reduce((sum, t) => sum + t.amount, 0));
+
   return (
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'dashboard' && (
-        <div className="space-y-6">
+        <div className="space-y-8">
+          {/* Welcome Section */}
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-foreground mb-2">
+              {t('dashboard.welcome')}
+            </h1>
+            <p className="text-lg text-muted-foreground">
+              {t('dashboard.subtitle')}
+            </p>
+          </div>
+
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Balance */}
-            <Card className="premium-card">
+            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {t('dashboard.currentBalance')}
                 </CardTitle>
-                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                  <Wallet className="h-4 w-4 text-primary" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <div className={`text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   ₪{totalBalance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {totalBalance >= 0 ? t('categories.salary') : t('navigation.expenses')}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {totalBalance >= 0 ? '↗ ' + t('dashboard.positive') : '↘ ' + t('dashboard.negative')}
                 </p>
               </CardContent>
             </Card>
 
             {/* Total Transactions */}
-            <Card className="premium-card">
+            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {t('dashboard.totalTransactions')}
                 </CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/30 transition-colors">
+                  <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">
+                <div className="text-3xl font-bold text-foreground">
                   {transactions.length.toLocaleString()}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('transactions.recentTransactions')}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('dashboard.allTime')}
                 </p>
               </CardContent>
             </Card>
 
             {/* Month Income */}
-            <Card className="premium-card">
+            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {t('navigation.income')}
                 </CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg group-hover:bg-green-200 dark:group-hover:bg-green-900/30 transition-colors">
+                  <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-3xl font-bold text-green-600">
                   ₪{monthIncome.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('dashboard.monthTransactions')}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('dashboard.thisMonth')}
                 </p>
               </CardContent>
             </Card>
 
             {/* Month Expenses */}
-            <Card className="premium-card">
+            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {t('navigation.expenses')}
                 </CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-600" />
+                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/30 transition-colors">
+                  <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-3xl font-bold text-red-600">
                   ₪{monthExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {t('dashboard.monthTransactions')}
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('dashboard.thisMonth')}
                 </p>
               </CardContent>
             </Card>
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Recent Transactions */}
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-6">
               <Card className="premium-card">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-foreground">
+                  <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
                     {t('transactions.recentTransactions')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TransactionTable limit={10} />
+                  <DashboardTransactions limit={8} />
                 </CardContent>
               </Card>
             </div>
 
             {/* Analytics Panel */}
-            <div>
+            <div className="space-y-6">
               <AnalyticsPanel />
+              
+              {/* Quick Stats Card */}
+              <Card className="premium-card">
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold">{t('dashboard.quickStats')}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{t('dashboard.weekExpenses')}</span>
+                    <span className="font-semibold text-red-600">
+                      ₪{weekExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">{t('dashboard.avgTransaction')}</span>
+                    <span className="font-semibold">
+                      ₪{transactions.length > 0 ? (totalBalance / transactions.length).toLocaleString('he-IL', { minimumFractionDigits: 2 }) : '0.00'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -263,12 +314,32 @@ const Index = () => {
           <UploadZone />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <TransactionTable />
+              <Card className="premium-card">
+                <CardHeader>
+                  <CardTitle>{t('transactions.allTransactions')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DashboardTransactions />
+                </CardContent>
+              </Card>
             </div>
             <div>
               <AnalyticsPanel />
             </div>
           </div>
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <Card className="premium-card">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold">{t('settings.title')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataManagement />
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -279,17 +350,6 @@ const Index = () => {
           </h2>
           <p className="text-muted-foreground">
             {t('autoSync.description')}
-          </p>
-        </div>
-      )}
-
-      {activeTab === 'settings' && (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-bold text-foreground mb-4">
-            {t('settings.title')}
-          </h2>
-          <p className="text-muted-foreground">
-            {t('settings.data')}
           </p>
         </div>
       )}

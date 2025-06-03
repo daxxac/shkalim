@@ -4,6 +4,7 @@ import { Transaction, BankType, Category } from '../types/finance';
 import { encryptData, decryptData } from '../utils/encryption';
 import { parseFileData } from '../utils/fileParser';
 import { categorizeTransaction } from '../utils/categorization';
+import Papa from 'papaparse';
 
 interface FinanceState {
   transactions: Transaction[];
@@ -26,6 +27,10 @@ interface FinanceState {
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
+  
+  // New actions
+  resetAllData: () => void;
+  uploadCategoriesCSV: (file: File) => Promise<void>;
   
   getTransactionsByCategory: () => Record<string, Transaction[]>;
   getMonthlyBalance: () => Array<{month: string, balance: number}>;
@@ -92,6 +97,65 @@ export const useFinanceStore = create<FinanceState>()(
 
       setLanguage: (lang: 'ru' | 'en') => {
         set({ currentLanguage: lang });
+      },
+
+      resetAllData: () => {
+        set({ 
+          transactions: [],
+          categories: defaultCategories
+        });
+      },
+
+      uploadCategoriesCSV: async (file: File) => {
+        return new Promise((resolve, reject) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            encoding: 'UTF-8',
+            complete: (result) => {
+              try {
+                const { transactions } = get();
+                const categoriesMap: Record<string, string> = {};
+                
+                // Parse CSV data to create mapping
+                result.data.forEach((row: any) => {
+                  const transaction = row['транзакция'] || row['transaction'] || row['description'];
+                  const category = row['категория'] || row['category'];
+                  
+                  if (transaction && category) {
+                    categoriesMap[transaction.toLowerCase()] = category;
+                  }
+                });
+
+                // Update transactions with new categories
+                const updatedTransactions = transactions.map(transaction => {
+                  const matchingCategory = Object.keys(categoriesMap).find(key =>
+                    transaction.description.toLowerCase().includes(key)
+                  );
+                  
+                  if (matchingCategory) {
+                    const categoryName = categoriesMap[matchingCategory];
+                    const existingCategory = get().categories.find(c => 
+                      c.name.toLowerCase() === categoryName.toLowerCase()
+                    );
+                    
+                    if (existingCategory) {
+                      return { ...transaction, category: existingCategory.id };
+                    }
+                  }
+                  
+                  return transaction;
+                });
+
+                set({ transactions: updatedTransactions });
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            },
+            error: (error) => reject(error)
+          });
+        });
       },
 
       addTransactions: async (file: File, bankType?: string) => {

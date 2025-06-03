@@ -17,10 +17,18 @@
   "dashboard": {
     "title": "Dashboard",
     "welcome": "Welcome to SHKALIM",
+    "subtitle": "Your personal finance management system",
     "loading": "Loading...",
     "totalTransactions": "Total Transactions",
     "monthTransactions": "This Month",
-    "currentBalance": "Current Balance"
+    "currentBalance": "Current Balance",
+    "positive": "Positive balance",
+    "negative": "Negative balance",
+    "allTime": "All time",
+    "thisMonth": "This month",
+    "quickStats": "Quick Statistics",
+    "weekExpenses": "This week expenses",
+    "avgTransaction": "Average transaction"
   },
   "transactions": {
     "date": "Date",
@@ -33,9 +41,13 @@
     "search": "Search transactions",
     "noTransactions": "No transactions",
     "recentTransactions": "Recent Transactions",
+    "allTransactions": "All Transactions",
     "loadMore": "Load More",
     "export": "Export",
-    "import": "Import"
+    "import": "Import",
+    "showing": "Showing",
+    "of": "of",
+    "transactions": "transactions"
   },
   "upload": {
     "title": "Upload Transactions",
@@ -44,7 +56,9 @@
     "upload": "Upload File",
     "success": "File uploaded",
     "error": "Upload error",
-    "processing": "Processing file..."
+    "processing": "Processing file...",
+    "dragDrop": "Drag and drop files here or click to select",
+    "dropHere": "Drop files here"
   },
   "banks": {
     "max": "MAX (Leumi Card)",
@@ -120,6 +134,13 @@
     "export": "Export data",
     "import": "Import data",
     "reset": "Reset data",
+    "resetData": "Reset All Data",
+    "resetDescription": "This will permanently delete all transactions and reset categories to default.",
+    "resetSuccess": "Data Reset",
+    "resetSuccessDesc": "All data has been successfully reset",
+    "confirmReset": "Are you sure you want to reset all data? This action cannot be undone.",
+    "currentData": "Current data",
+    "dangerZone": "Danger Zone",
     "about": "About",
     "version": "Version"
   },
@@ -134,6 +155,18 @@
     "education": "Education",
     "travel": "Travel",
     "salary": "Income",
-    "other": "Other"
+    "other": "Other",
+    "all": "All categories",
+    "uploadTitle": "Upload Categories",
+    "uploadDescription": "Upload a CSV file to automatically categorize transactions based on description patterns.",
+    "uploadSuccess": "Categories Uploaded",
+    "uploadSuccessDesc": "Categories have been successfully applied to transactions",
+    "uploadError": "Upload Error",
+    "uploadErrorDesc": "Failed to process categories file",
+    "processing": "Processing categories...",
+    "dragDrop": "Drag and drop CSV file here",
+    "dropHere": "Drop CSV file here",
+    "csvFormat": "CSV format only",
+    "exampleFormat": "Expected format:"
   }
 }
