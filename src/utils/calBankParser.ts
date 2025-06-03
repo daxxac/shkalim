@@ -42,10 +42,41 @@ export function parseCalBankFile(arrayBuffer: ArrayBuffer): CalBankTransaction[]
     throw new Error('No data found in CAL file');
   }
   
-  // CAL files have headers in the second row (index 1), not the first
-  const headers = jsonData[1] as string[];
+  // Find the header row by looking for expected column names
+  let headerRowIndex = -1;
+  let headers: string[] = [];
+  
+  for (let i = 0; i < Math.min(5, jsonData.length); i++) {
+    const row = jsonData[i] as string[];
+    if (row && row.length > 3) {
+      // Check if this row contains CAL column headers
+      const hasDateColumn = row.some(cell => 
+        cell && typeof cell === 'string' && 
+        (cell.includes('תאריך') || cell.includes('עסקה'))
+      );
+      const hasMerchantColumn = row.some(cell => 
+        cell && typeof cell === 'string' && 
+        cell.includes('בית עסק')
+      );
+      const hasAmountColumn = row.some(cell => 
+        cell && typeof cell === 'string' && 
+        (cell.includes('סכום') || cell.includes('ש"ח'))
+      );
+      
+      if (hasDateColumn && hasMerchantColumn && hasAmountColumn) {
+        headerRowIndex = i;
+        headers = row.map(cell => cell ? String(cell).replace(/\r/g, '') : '');
+        break;
+      }
+    }
+  }
+  
+  if (headerRowIndex === -1) {
+    throw new Error('Could not find CAL header row');
+  }
   
   console.log('CAL Bank headers found:', headers);
+  console.log('Header row index:', headerRowIndex);
   
   // Find column indices
   const columnIndices: Record<string, number> = {};
@@ -60,8 +91,8 @@ export function parseCalBankFile(arrayBuffer: ArrayBuffer): CalBankTransaction[]
   
   const transactions: CalBankTransaction[] = [];
   
-  // Start from row 2 (index 2) since headers are in row 1 (index 1)
-  for (let i = 2; i < jsonData.length; i++) {
+  // Start from the row after headers
+  for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
     const row = jsonData[i] as any[];
     
     if (!row || row.length === 0) continue;
