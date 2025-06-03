@@ -229,7 +229,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, dataType
       )}
 
       {/* Monthly Balance Trend */}
-      <div className="premium-card p-6">
+      {/* <div className="premium-card p-6">
         <h3 className="text-lg font-semibold text-foreground mb-4">
           {t('analytics.monthlyTrend')}
         </h3>
@@ -266,7 +266,7 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, dataType
             <p>{t('transactions.noTransactions')}</p>
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 };

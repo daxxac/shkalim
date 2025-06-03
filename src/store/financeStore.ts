@@ -169,12 +169,13 @@ export const useFinanceStore = create<FinanceState>()(
       
       unlockData: async (dataEncryptionPassword: string) => { // Renamed from unlock
         const state = get();
-
-        if (!state.isSupabaseAuthenticated) {
-          // This check might be redundant if UI prevents calling this, but good for safety
-          throw new Error("User not authenticated with Supabase.");
-        }
-
+    
+        // Removed Supabase auth check: local decryption should be independent
+        // if (!state.isSupabaseAuthenticated) {
+        //   // This check might be redundant if UI prevents calling this, but good for safety
+        //   throw new Error("User not authenticated with Supabase.");
+        // }
+    
         if (state.encryptedDataBlob) {
           try {
             const decrypted = await decryptData(state.encryptedDataBlob, dataEncryptionPassword);
@@ -222,10 +223,11 @@ export const useFinanceStore = create<FinanceState>()(
  
       setDataEncryptionPassword: async (newDataEncryptionPassword: string, oldDataEncryptionPassword?: string) => {
         const state = get();
-
-        if (!state.isSupabaseAuthenticated) {
-          throw new Error("User not authenticated with Supabase.");
-        }
+    
+        // Removed Supabase auth check: setting local encryption password should be independent
+        // if (!state.isSupabaseAuthenticated) {
+        //   throw new Error("User not authenticated with Supabase.");
+        // }
         
         let currentSensitiveData = {
           transactions: state.transactions, // These might be empty if data is locked
@@ -301,16 +303,18 @@ export const useFinanceStore = create<FinanceState>()(
         set({ currentLanguage: lang });
       },
 
-      resetAllData: async () => { // Делаем async для вызова _updateEncryptedBlob
+      resetAllData: async () => {
         set({
           transactions: [],
           upcomingCharges: [],
           categories: defaultCategories,
-          // masterPasswordHash и encryptedDataBlob НЕ сбрасываются здесь.
-          // Это действие только для данных пользователя, не для настроек безопасности.
+          encryptedDataBlob: null, // Clear the encrypted blob from store
+          _currentPasswordInMemory: null, // Clear any in-memory password
+          isDataLocked: true, // Ensure data is locked after reset
         });
-        // После сброса данных, если приложение разблокировано, нужно обновить зашифрованный блоб.
-        await get()._updateEncryptedBlob();
+        localStorage.removeItem('finance-storage'); // Remove persisted blob
+        // No _updateEncryptedBlob needed as we are clearing.
+        // No page reload, no Supabase logout as per user confirmation.
       },
 
       uploadCategoriesCSV: async (file: File) => {

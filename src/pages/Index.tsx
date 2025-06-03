@@ -221,15 +221,26 @@ const Index = () => {
     setShowSecurityModal(true);
   };
 
-  const handlePanicMode = () => {
-    if (window.confirm(t('auth.confirmDelete'))) {
-      panicMode();
-      toast({
-        title: t('auth.dataDeleted'),
-        description: t('auth.allDataDeleted'),
-        variant: "destructive",
-      });
-    }
+  const handlePanicMode = async () => {
+    const confirmText = t('auth.confirmDelete');
+    console.log('[PANIC] confirmText:', confirmText);
+    toast({
+      title: t('auth.panicMode'),
+      description: confirmText,
+      action: (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="destructive" size="sm" onClick={async () => {
+            await panicMode();
+          }}>
+            {t('common.yes', 'Да')}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { /* just close toast */ }}>
+            {t('common.no', 'Нет')}
+          </Button>
+        </div>
+      ),
+      duration: 10000,
+    });
   };
 
   if (!isInitialized) {
@@ -419,15 +430,18 @@ const Index = () => {
               >
                 {t('auth.changeDataPassword', 'Change Data Password')}
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handlePanicMode}
-                className="flex items-center gap-2"
-              >
-                <AlertTriangle className="h-4 w-4" />
-                {t('auth.panicMode')}
-              </Button>
+              <div className="fixed bottom-8 right-8 z-[9999]">
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  style={{ border: '3px solid red', zIndex: 9999 }}
+                  onClick={() => { console.log('PANIC CLICK!'); handlePanicMode(); }}
+                  className="flex items-center gap-2"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  {t('auth.panicMode')}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

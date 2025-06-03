@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +28,11 @@ export const UploadZone: React.FC = () => {
       } catch (error) {
         errorCount++;
         console.error(`Error processing ${file.name}:`, error);
+        toast({
+          title: t('upload.error'),
+          description: `${file.name}: ${error instanceof Error ? error.message : String(error)}`,
+          variant: "destructive",
+        });
       }
     }
 

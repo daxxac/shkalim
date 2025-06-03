@@ -123,8 +123,9 @@
     "uploadErrorDesc": "Возникла проблема при импорте категорий. Пожалуйста, проверьте формат файла.",
     "processing": "Обработка...",
     "dropHere": "Отпустите файлы здесь",
+    "exampleFormat": "Пример CSV формата для категорий:",
     "exampleFormatTitle": "Пример CSV формата для категорий:",
-    "exampleFormat": {
+    "exampleFormatObj": {
       "header": "транзакция,категория",
       "line1": "\"магнит\",{{categoryId}}",
       "line2": "\"такси\",{{categoryId}}"
@@ -133,7 +134,8 @@
   "upload": {
     "title": "Загрузка файлов",
     "dragDrop": "Перетащите файлы сюда или нажмите для выбора",
-    "supportedFormats": {
+    "supportedFormats": "Поддерживаемые форматы:",
+    "supportedFormatsObj": {
       "discountTransactions": "Дисконт - Транзакции (XLSX)",
       "discountCredit": "Дисконт - Кредитка (XLSX)",
       "maxPayments": "Макс - Платежи (XLSX)",

@@ -2,7 +2,15 @@
 // Simple encryption utilities for local storage
 // Note: This is basic encryption for local use only
 
-export async function encryptData(data: any, password: string): Promise<string> {
+import { Transaction, UpcomingCharge, Category } from '../types/finance';
+
+interface EncryptedPayload {
+  transactions: Transaction[];
+  upcomingCharges: UpcomingCharge[];
+  categories: Category[];
+}
+
+export async function encryptData(data: EncryptedPayload, password: string): Promise<string> {
   const jsonString = JSON.stringify(data);
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(jsonString);
@@ -47,10 +55,18 @@ export async function encryptData(data: any, password: string): Promise<string> 
   result.set(new Uint8Array(encryptedData), salt.length + iv.length);
   
   // Convert to base64
-  return btoa(String.fromCharCode(...result));
+  // Convert to base64
+  // The original String.fromCharCode(...result) can cause a RangeError for large arrays.
+  // Iterate manually to build the binary string.
+  let binary = '';
+  const len = result.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(result[i]);
+  }
+  return btoa(binary);
 }
 
-export async function decryptData(encryptedData: string, password: string): Promise<any> {
+export async function decryptData(encryptedData: string, password: string): Promise<EncryptedPayload> {
   try {
     // Convert from base64
     const data = new Uint8Array(

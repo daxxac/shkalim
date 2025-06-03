@@ -1,4 +1,3 @@
-
 import * as XLSX from 'xlsx';
 import { Transaction } from '../types/finance';
 
@@ -115,17 +114,37 @@ export function parseMaxBankFile(arrayBuffer: ArrayBuffer, type: 'max-shekel' | 
     throw new Error(`Sheet "${sheetName}" not found`);
   }
   
-  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 3 }); // Headers on row 4 (index 3)
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
   
   if (jsonData.length < 2) {
     throw new Error('No data found in MAX file');
   }
-  
-  const headers = jsonData[0] as string[];
-  const columnMap = type === 'max-shekel' ? MAX_COLUMNS.shekel : MAX_COLUMNS.foreign;
+
+  // Поиск строки с заголовками, как у cal
+  let headerRowIndex = -1;
+  let headers: string[] = [];
+  for (let i = 0; i < Math.min(8, jsonData.length); i++) {
+    const row = jsonData[i] as unknown[];
+    if (row && row.length > 3) {
+      // Проверяем наличие ключевых колонок
+      const hasDateColumn = row.some(cell => cell && typeof cell === 'string' && (cell.includes('תאריך') || cell.includes('עסקה')));
+      const hasMerchantColumn = row.some(cell => cell && typeof cell === 'string' && cell.includes('בית העסק'));
+      const hasAmountColumn = row.some(cell => cell && typeof cell === 'string' && (cell.includes('סכום') || cell.includes('חיוב')));
+      if (hasDateColumn && hasMerchantColumn && hasAmountColumn) {
+        headerRowIndex = i;
+        headers = row.map(cell => cell ? String(cell).replace(/\r/g, '') : '');
+        break;
+      }
+    }
+  }
+  if (headerRowIndex === -1) {
+    throw new Error('Could not find MAX header row');
+  }
   
   console.log('MAX Bank headers found:', headers);
+  console.log('Header row index:', headerRowIndex);
   
+  const columnMap = type === 'max-shekel' ? MAX_COLUMNS.shekel : MAX_COLUMNS.foreign;
   // Find column indices
   const columnIndices: Record<string, number> = {};
   Object.entries(columnMap).forEach(([key, hebrewName]) => {
@@ -138,9 +157,9 @@ export function parseMaxBankFile(arrayBuffer: ArrayBuffer, type: 'max-shekel' | 
   console.log('MAX column indices found:', columnIndices);
   
   const transactions: MaxBankTransaction[] = [];
-  
-  for (let i = 1; i < jsonData.length; i++) {
-    const row = jsonData[i] as any[];
+  // Начинаем с первой строки после заголовков
+  for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+    const row = jsonData[i] as unknown[];
     
     if (!row || row.length === 0) continue;
     
@@ -149,7 +168,7 @@ export function parseMaxBankFile(arrayBuffer: ArrayBuffer, type: 'max-shekel' | 
       if (transaction) {
         transactions.push(transaction);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.warn(`Error parsing MAX row ${i}:`, error);
     }
   }
@@ -158,7 +177,7 @@ export function parseMaxBankFile(arrayBuffer: ArrayBuffer, type: 'max-shekel' | 
   return transactions;
 }
 
-function parseMaxBankRow(row: any[], columnIndices: Record<string, number>, type: 'max-shekel' | 'max-foreign'): MaxBankTransaction | null {
+function parseMaxBankRow(row: unknown[], columnIndices: Record<string, number>, type: 'max-shekel' | 'max-foreign'): MaxBankTransaction | null {
   const getValue = (key: string) => {
     const index = columnIndices[key];
     return index !== undefined ? row[index] : null;
@@ -182,7 +201,7 @@ function parseMaxBankRow(row: any[], columnIndices: Record<string, number>, type
   // Parse amount
   let amount: number;
   if (typeof chargeAmountValue === 'string') {
-    amount = parseFloat(chargeAmountValue.replace(/[^\d\-\.]/g, ''));
+    amount = parseFloat(chargeAmountValue.replace(/[^\d\-.]/g, ''));
   } else {
     amount = Number(chargeAmountValue);
   }

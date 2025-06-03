@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
@@ -11,6 +10,7 @@ import { toast } from '../hooks/use-toast';
 import { sharingService } from '../services/sharingService';
 
 export const DataManagement: React.FC = () => {
+  console.log('[DataManagement] rendered'); // Debug: check if component mounts
   const { t } = useTranslation();
   const { resetAllData, uploadCategoriesCSV, transactions, isSupabaseAuthenticated } = useFinanceStore(); // Added isSupabaseAuthenticated
   const [uploadingCategories, setUploadingCategories] = useState(false);
@@ -101,9 +101,9 @@ export const DataManagement: React.FC = () => {
     multiple: false
   });
 
-  const handleResetData = () => {
+  const handleResetData = async () => {
     if (window.confirm(t('settings.confirmReset'))) {
-      resetAllData();
+      await resetAllData();
       toast({
         title: t('settings.resetSuccess'),
         description: t('settings.resetSuccessDesc'),
@@ -155,11 +155,12 @@ export const DataManagement: React.FC = () => {
           </div>
 
           <div className="bg-muted p-3 rounded-lg">
+            {/* Example format title */}
             <p className="text-sm font-medium mb-1">{t('categories.exampleFormat')}</p>
             <code className="text-xs bg-background p-2 rounded block">
-              {t('categories.exampleFormat.header')}<br/>
-              {t('categories.exampleFormat.line1', { categoryId: '"food"'})}<br/>
-              {t('categories.exampleFormat.line2', { categoryId: '"transport"'})}
+              {t('categories.exampleFormatObj.header')}<br/>
+              {t('categories.exampleFormatObj.line1', { categoryId: '"food"'})}<br/>
+              {t('categories.exampleFormatObj.line2', { categoryId: '"transport"'})}
             </code>
           </div>
         </CardContent>
@@ -289,8 +290,9 @@ export const DataManagement: React.FC = () => {
             </div>
             <Button
               variant="destructive"
-              onClick={handleResetData}
+              onClick={() => { console.log('CLICK!'); handleResetData(); }}
               className="ml-4"
+              style={{ pointerEvents: 'auto', opacity: 1, zIndex: 9999, border: '2px solid red' }} // Debug styles
             >
               <Trash2 className="h-4 w-4 mr-2" />
               {t('settings.reset')}
