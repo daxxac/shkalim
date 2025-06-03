@@ -630,8 +630,8 @@ const Index = () => {
       )}
 
       {activeTab === 'settings' && (
-        <div className="space-y-6">
-          <Card className="premium-card">
+        <div className="space-y-6 w-full"> {/* Ensure this div also takes full width */}
+          <Card className="premium-card w-full"> {/* Make the card take full width */}
             <CardHeader>
               <CardTitle className="text-2xl font-bold">{t('settings.title')}</CardTitle>
             </CardHeader>

@@ -102,12 +102,28 @@ export const DataManagement: React.FC = () => {
   });
 
   const handleResetData = async () => {
-    if (window.confirm(t('settings.confirmReset'))) {
-      await resetAllData();
-      toast({
-        title: t('settings.resetSuccess'),
-        description: t('settings.resetSuccessDesc'),
-      });
+    const userConfirmed = window.confirm(t('settings.confirmReset'));
+    if (userConfirmed) {
+      console.log('[DataManagement] User confirmed data reset. Calling resetAllData from store...');
+      try {
+        await resetAllData(); // This should trigger a reload if successful
+        // The toast below will likely not be seen due to the immediate reload.
+        // This is acceptable as the reload itself is strong feedback.
+        console.log('[DataManagement] resetAllData store function call completed (reload should be in progress).');
+        // toast({
+        //   title: t('settings.resetSuccess'),
+        //   description: t('settings.resetSuccessDesc'),
+        // });
+      } catch (error) {
+        console.error('[DataManagement] Error during resetAllData call:', error);
+        toast({
+          title: t('settings.resetErrorTitle', 'Reset Failed'),
+          description: error instanceof Error ? error.message : t('settings.resetErrorDesc', 'An unexpected error occurred during data reset.'),
+          variant: "destructive",
+        });
+      }
+    } else {
+      console.log('[DataManagement] User cancelled data reset.');
     }
   };
 
@@ -154,9 +170,13 @@ export const DataManagement: React.FC = () => {
             )}
           </div>
 
+          <p className="text-xs text-muted-foreground mt-3">
+            {t('categories.privacyNote')}
+          </p>
+
           <div className="bg-muted p-3 rounded-lg">
             {/* Example format title */}
-            <p className="text-sm font-medium mb-1">{t('categories.exampleFormat')}</p>
+            <p className="text-sm font-medium mb-1">{t('categories.exampleFormatTitle')}</p>
             <code className="text-xs bg-background p-2 rounded block">
               {t('categories.exampleFormatObj.header')}<br/>
               {t('categories.exampleFormatObj.line1', { categoryId: '"food"'})}<br/>

@@ -80,7 +80,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
       </header>
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 premium-card">
             <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">

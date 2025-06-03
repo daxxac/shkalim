@@ -304,17 +304,24 @@ export const useFinanceStore = create<FinanceState>()(
       },
 
       resetAllData: async () => {
+        // Make resetAllData behave like panicMode as per user feedback
+        if (get().isSupabaseAuthenticated) {
+          await supabase.auth.signOut().catch(err => console.error("Supabase signout error during resetAllData:", err));
+        }
+        localStorage.removeItem('finance-storage'); // Remove persisted blob
+
         set({
           transactions: [],
           upcomingCharges: [],
           categories: defaultCategories,
-          encryptedDataBlob: null, // Clear the encrypted blob from store
-          _currentPasswordInMemory: null, // Clear any in-memory password
-          isDataLocked: true, // Ensure data is locked after reset
+          isDataLocked: true, // Ensure data is locked
+          isInitialized: false, // Force re-initialization on reload
+          encryptedDataBlob: null,
+          _currentPasswordInMemory: null,
+          currentLanguage: 'ru', // Reset language to default like in panicMode
+          // isSupabaseAuthenticated will be re-evaluated on next load by checkSupabaseSession
         });
-        localStorage.removeItem('finance-storage'); // Remove persisted blob
-        // No _updateEncryptedBlob needed as we are clearing.
-        // No page reload, no Supabase logout as per user confirmation.
+        window.location.reload(); // Reload the page like panicMode
       },
 
       uploadCategoriesCSV: async (file: File) => {

@@ -123,6 +123,7 @@
     "uploadErrorDesc": "There was an issue importing your categories. Please check the file format.",
     "processing": "Processing...",
     "dropHere": "Drop files here",
+    "privacyNote": "We do not store your category files on our servers. All processing happens in your browser.",
     "exampleFormatTitle": "Example CSV Format for Categories:",
     "exampleFormat": {
       "header": "transaction,category",

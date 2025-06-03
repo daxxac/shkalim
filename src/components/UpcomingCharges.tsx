@@ -44,7 +44,7 @@ export const UpcomingCharges: React.FC = () => {
   const totalUpcomingAmount = filteredCharges.reduce((sum, charge) => sum + Math.abs(charge.amount), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full"> {/* Make the root div take full width */}
       {/* Header */}
       <Card className="premium-card">
         <CardHeader>
