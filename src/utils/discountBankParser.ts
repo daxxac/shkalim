@@ -9,7 +9,9 @@ export interface DiscountBankTransaction {
   type: 'income' | 'credit-debit' | 'direct-debit' | 'expense' | 'other';
   source: 'discount';
   reference?: string;
+  rawValueDate?: any; // To store the original value date from the Excel
   rawRow?: Record<string, any>;
+  isCreditCardCharge?: boolean; // Flag to explicitly mark items from the credit card table
 }
 
 // Column mappings for Discount Bank transactions table
@@ -52,51 +54,62 @@ const CREDIT_CARD_CHARGE_KEYWORDS = [
   'מסטרקארד מקס'
 ];
 
-export function parseDiscountBankFile(file: ArrayBuffer, fileType?: string): DiscountBankTransaction[] {
+export interface ParsedDiscountOutput {
+  mainAccountTransactions: DiscountBankTransaction[];
+  creditCardTransactions: DiscountBankTransaction[];
+}
+
+export function parseDiscountBankFile(file: ArrayBuffer, fileType?: string): ParsedDiscountOutput {
+  const result: ParsedDiscountOutput = {
+    mainAccountTransactions: [],
+    creditCardTransactions: [],
+  };
+
   try {
     const workbook = XLSX.read(file, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
-    // Convert to JSON with original headers
-    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
     
     if (rawData.length < 2) {
       throw new Error('File appears to be empty or has no data rows');
     }
     
     console.log('Raw data length:', rawData.length);
-    console.log('First 5 rows:', rawData.slice(0, 5));
     
-    // Find tables in the sheet
-    const tables = findTablesInSheet(rawData);
-    console.log('Found tables:', tables);
-    
-    let targetTable;
-    
-    if (fileType === 'discount-transactions') {
-      targetTable = tables.find(t => t.type === 'transactions');
-    } else if (fileType === 'discount-credit') {
-      targetTable = tables.find(t => t.type === 'credit');
-    } else {
-      // Auto-detect: prefer transactions table
-      targetTable = tables.find(t => t.type === 'transactions') || tables.find(t => t.type === 'credit');
+    const allFoundTables = findTablesInSheet(rawData);
+    console.log('Found tables in sheet:', allFoundTables);
+
+    const transactionsTable = allFoundTables.find(t => t.type === 'transactions');
+    const creditCardTable = allFoundTables.find(t => t.type === 'credit');
+
+    if (transactionsTable) {
+      console.log('Parsing main transactions table:', transactionsTable);
+      const mainItems = parseDiscountTable(rawData, transactionsTable);
+      result.mainAccountTransactions = mainItems;
+      console.log(`Parsed ${mainItems.length} main account transactions`);
+    }
+
+    if (creditCardTable) {
+      console.log('Parsing credit card charges table:', creditCardTable);
+      const creditItems = parseDiscountTable(rawData, creditCardTable, true); // Pass true for isCreditCardTable
+      result.creditCardTransactions = creditItems;
+      console.log(`Parsed ${creditItems.length} credit card transactions`);
+    }
+
+    if (result.mainAccountTransactions.length === 0 && result.creditCardTransactions.length === 0) {
+      // This check can be refined based on whether fileType implies a specific table should exist
+      if (!fileType || (fileType === 'discount-transactions' && !transactionsTable) || (fileType === 'discount-credit' && !creditCardTable)) {
+         throw new Error('Could not find any recognized table format in the file, or the expected table was missing.');
+      }
     }
     
-    if (!targetTable) {
-      throw new Error('Could not find a recognized table format in the file');
-    }
-    
-    console.log('Using table:', targetTable);
-    
-    const transactions = parseDiscountTable(rawData, targetTable);
-    console.log(`Parsed ${transactions.length} Discount Bank transactions`);
-    
-    return transactions;
+    return result;
     
   } catch (error) {
     console.error('Error parsing Discount Bank file:', error);
-    throw new Error(`Failed to parse Discount Bank file: ${error}`);
+    throw new Error(`Failed to parse Discount Bank file: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -166,22 +179,38 @@ function findTableEnd(rawData: any[], startRow: number): number {
   return rawData.length - 1;
 }
 
-function parseDiscountTable(rawData: any[], table: TableInfo): DiscountBankTransaction[] {
+function parseDiscountTable(
+  rawData: any[][],
+  table: TableInfo,
+  isCreditCardTable = false // New parameter
+): DiscountBankTransaction[] {
   const transactions: DiscountBankTransaction[] = [];
   
   for (let i = table.startRow + 1; i <= table.endRow; i++) {
-    const row = rawData[i] as any[];
+    const row = rawData[i];
     if (!row || row.length === 0) continue;
     
     try {
       const transaction = parseDiscountBankRow(row, table.columnIndices, i + 1);
-      if (transaction && !shouldFilterOutTransaction(transaction)) {
-        transactions.push(transaction);
-      } else if (transaction && shouldFilterOutTransaction(transaction)) {
-        console.log(`Filtered out credit card charge: ${transaction.description}`);
+      
+      if (transaction) {
+        transaction.isCreditCardCharge = isCreditCardTable; // Set the flag
+
+        let shouldAdd = true;
+        // Only apply shouldFilterOutTransaction for the main transactions table
+        // to remove summary lines of *external* credit cards.
+        // For the bank's own credit card table, we want all items.
+        if (table.type === 'transactions' && !isCreditCardTable && shouldFilterOutTransaction(transaction)) {
+          console.log(`Filtered out external credit card charge summary from main transactions: ${transaction.description}`);
+          shouldAdd = false;
+        }
+        
+        if (shouldAdd) {
+          transactions.push(transaction);
+        }
       }
     } catch (error) {
-      console.warn(`Error parsing row ${i + 1}:`, error);
+      console.warn(`Error parsing row ${i + 1}:`, error instanceof Error ? error.message : String(error));
     }
   }
   
@@ -219,6 +248,7 @@ function parseDiscountBankRow(
   const amountValue = getColumnValue('amount');
   const balanceValue = getColumnValue('balance');
   const reference = getColumnValue('reference');
+  const rawValueDate = getColumnValue('valueDate'); // Get raw valueDate
   
   // Skip empty rows
   if (!dateValue && !description && !amountValue) {
@@ -253,12 +283,14 @@ function parseDiscountBankRow(
     type,
     source: 'discount',
     reference: reference ? String(reference) : undefined,
+    rawValueDate: rawValueDate, // Store raw valueDate
     rawRow: {
       date: dateValue,
       description,
       amount: amountValue,
       balance: balanceValue,
-      reference
+      reference,
+      valueDate: rawValueDate
     }
   };
 }
@@ -365,13 +397,18 @@ export function convertDiscountToStandardTransaction(
 ): Transaction {
   return {
     id: `discount-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    date: discountTransaction.date,
+    date: discountTransaction.date, // This is the primary transaction date
     description: discountTransaction.description,
     amount: discountTransaction.amount,
     balance: discountTransaction.balance,
     bank: 'discount',
     reference: discountTransaction.reference,
-    category: mapDiscountTypeToCategory(discountTransaction.type)
+    category: mapDiscountTypeToCategory(discountTransaction.type),
+    chargeDate: discountTransaction.rawValueDate ? parseDiscountDate(discountTransaction.rawValueDate)?.toISOString().split('T')[0] : undefined,
+    // The isCreditCardCharge flag from DiscountBankTransaction can be used by the store
+    // to decide if this standard transaction should go to upcomingCharges or main transactions.
+    // We don't add it directly to the standard Transaction type unless that type is also modified.
+    // For now, the store will use the source (mainAccountTransactions vs creditCardTransactions from parser)
   };
 }
 

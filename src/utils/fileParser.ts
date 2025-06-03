@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { Transaction, BankType, BankConfig } from '../types/finance';
-import { parseDiscountBankFile, convertDiscountToStandardTransaction } from './discountBankParser';
+import { parseDiscountBankFile, convertDiscountToStandardTransaction, ParsedDiscountOutput } from './discountBankParser';
 import { parseMaxBankFile, convertMaxToStandardTransaction } from './maxBankParser';
 import { parseCalBankFile, convertCalToStandardTransaction } from './calBankParser';
 
@@ -37,114 +37,128 @@ const bankConfigs: Record<BankType, BankConfig> = {
   }
 };
 
-export async function parseFileData(file: File, bankType?: string): Promise<Transaction[]> {
+export interface UnifiedParsingResult {
+  processedTransactions: Transaction[];
+  processedUpcomingCharges?: Transaction[];
+}
+
+export async function parseFileData(file: File, bankType?: string): Promise<UnifiedParsingResult> {
   console.log(`Parsing file: ${file.name}, type: ${file.type}, size: ${file.size}, bankType: ${bankType}`);
   
   const fileExtension = file.name.split('.').pop()?.toLowerCase();
-  let data: any[];
+  let genericData: any[]; // For CSV or fallback XLSX
 
   try {
-    if (fileExtension === 'csv') {
-      data = await parseCSV(file);
-    } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+    if (fileExtension === 'xlsx' || fileExtension === 'xls') {
       const arrayBuffer = await file.arrayBuffer();
       
-      // Handle specific bank types
-      if (bankType === 'discount-transactions' || bankType === 'discount-credit') {
+      // Handle specific bank types first
+      // Added 'discount' to catch general discount bank type if more specific (transactions/credit) isn't provided
+      if (bankType === 'discount' || bankType === 'discount-transactions' || bankType === 'discount-credit') {
         try {
-          const discountTransactions = parseDiscountBankFile(arrayBuffer, bankType);
-          if (discountTransactions.length > 0) {
-            console.log(`Successfully parsed ${discountTransactions.length} transactions with Discount Bank parser`);
-            return discountTransactions.map(convertDiscountToStandardTransaction);
-          }
+          const discountResult: ParsedDiscountOutput = parseDiscountBankFile(arrayBuffer, bankType);
+          const mainTransactions = discountResult.mainAccountTransactions.map(convertDiscountToStandardTransaction);
+          const creditCardTransactions = discountResult.creditCardTransactions.map(convertDiscountToStandardTransaction);
+          
+          console.log(`Discount: Parsed ${mainTransactions.length} main Txs, ${creditCardTransactions.length} CC Txs.`);
+          return {
+            processedTransactions: mainTransactions,
+            processedUpcomingCharges: creditCardTransactions
+          };
         } catch (discountError) {
-          console.log('Discount Bank parsing failed:', discountError);
-          throw discountError;
+          console.warn('Specific Discount Bank parsing failed, will try auto or generic:', discountError);
+          // Fall through to auto-detection or generic if specific parse fails
         }
       }
       
-      if (bankType === 'max-shekel' || bankType === 'max-foreign') {
+      if (bankType === 'max' || bankType === 'max-shekel' || bankType === 'max-foreign') {
         try {
-          const maxTransactions = parseMaxBankFile(arrayBuffer, bankType);
-          if (maxTransactions.length > 0) {
-            console.log(`Successfully parsed ${maxTransactions.length} transactions with MAX Bank parser`);
-            return maxTransactions.map(convertMaxToStandardTransaction);
-          }
+          // parseMaxBankFile expects 'max-shekel' or 'max-foreign'. If 'max' is given, default to 'max-shekel'.
+          const specificMaxType = (bankType === 'max' ? 'max-shekel' : bankType) as 'max-shekel' | 'max-foreign';
+          const maxTransactions = parseMaxBankFile(arrayBuffer, specificMaxType);
+          console.log(`MAX: Parsed ${maxTransactions.length} transactions using type ${specificMaxType}.`);
+          return { processedTransactions: maxTransactions.map(convertMaxToStandardTransaction) };
         } catch (maxError) {
-          console.log('MAX Bank parsing failed:', maxError);
-          throw maxError;
+          console.warn('Specific MAX Bank parsing failed, will try auto or generic:', maxError);
         }
       }
       
       if (bankType === 'cal') {
         try {
           const calTransactions = parseCalBankFile(arrayBuffer);
-          if (calTransactions.length > 0) {
-            console.log(`Successfully parsed ${calTransactions.length} transactions with CAL Bank parser`);
-            return calTransactions.map(convertCalToStandardTransaction);
-          }
+          console.log(`CAL: Parsed ${calTransactions.length} transactions.`);
+          return { processedTransactions: calTransactions.map(convertCalToStandardTransaction) };
         } catch (calError) {
-          console.log('CAL Bank parsing failed:', calError);
-          throw calError;
+          console.warn('Specific CAL Bank parsing failed, will try auto or generic:', calError);
         }
       }
       
-      // For auto-detection, try enhanced parsers first
+      // Auto-detection if bankType is 'auto' or not specifically handled above
       if (!bankType || bankType === 'auto') {
-        // Try Discount Bank first
+        // Try Discount Bank first in auto-detection
         try {
-          const discountTransactions = parseDiscountBankFile(arrayBuffer);
-          if (discountTransactions.length > 0) {
-            console.log(`Successfully parsed ${discountTransactions.length} transactions with Discount Bank parser`);
-            return discountTransactions.map(convertDiscountToStandardTransaction);
+          const discountResult: ParsedDiscountOutput = parseDiscountBankFile(arrayBuffer); // No bankType hint for full auto
+          const mainTransactions = discountResult.mainAccountTransactions.map(convertDiscountToStandardTransaction);
+          const creditCardTransactions = discountResult.creditCardTransactions.map(convertDiscountToStandardTransaction);
+
+          // Check if any transactions were actually parsed by Discount parser
+          if (mainTransactions.length > 0 || creditCardTransactions.length > 0) {
+            console.log(`Auto-Discount: Parsed ${mainTransactions.length} main Txs, ${creditCardTransactions.length} CC Txs.`);
+            return {
+              processedTransactions: mainTransactions,
+              processedUpcomingCharges: creditCardTransactions
+            };
           }
         } catch (discountError) {
-          console.log('Auto-detection: Discount Bank parsing failed:', discountError);
+          console.log('Auto-detection: Discount Bank parsing attempt failed:', discountError);
         }
         
         // Try MAX Bank
         try {
+          // Try with 'max-shekel' as a common default for auto-detection
           const maxTransactions = parseMaxBankFile(arrayBuffer, 'max-shekel');
           if (maxTransactions.length > 0) {
-            console.log(`Successfully parsed ${maxTransactions.length} transactions with MAX Bank parser`);
-            return maxTransactions.map(convertMaxToStandardTransaction);
+            console.log(`Auto-MAX: Parsed ${maxTransactions.length} transactions.`);
+            return { processedTransactions: maxTransactions.map(convertMaxToStandardTransaction) };
           }
         } catch (maxError) {
-          console.log('Auto-detection: MAX Bank parsing failed:', maxError);
+          console.log('Auto-detection: MAX Bank parsing attempt failed:', maxError);
         }
         
         // Try CAL Bank
         try {
           const calTransactions = parseCalBankFile(arrayBuffer);
           if (calTransactions.length > 0) {
-            console.log(`Successfully parsed ${calTransactions.length} transactions with CAL Bank parser`);
-            return calTransactions.map(convertCalToStandardTransaction);
+            console.log(`Auto-CAL: Parsed ${calTransactions.length} transactions.`);
+            return { processedTransactions: calTransactions.map(convertCalToStandardTransaction) };
           }
         } catch (calError) {
-          console.log('Auto-detection: CAL Bank parsing failed:', calError);
+          console.log('Auto-detection: CAL Bank parsing attempt failed:', calError);
         }
       }
       
-      // Fall back to generic XLSX parsing
-      data = await parseXLSXFromBuffer(arrayBuffer);
+      // Fall back to generic XLSX parsing if all specific/auto attempts fail for XLSX/XLS
+      console.log('Falling back to generic XLSX parsing for XLSX/XLS file.');
+      genericData = await parseXLSXFromBuffer(arrayBuffer);
+
+    } else if (fileExtension === 'csv') {
+      console.log('Parsing CSV file.');
+      genericData = await parseCSV(file);
     } else {
       throw new Error(`Unsupported file format: ${fileExtension}`);
     }
 
-    console.log(`Parsed ${data.length} rows from ${file.name}`);
-    
-    // Detect bank type based on column headers
-    const detectedBankType = detectBankType(data[0] || {});
-    console.log(`Detected bank type: ${detectedBankType}`);
-    
-    // Convert to transactions
-    const transactions = convertToTransactions(data, detectedBankType);
-    console.log(`Converted to ${transactions.length} transactions`);
-    
-    return transactions;
+    // Process genericData (from CSV or fallback XLSX)
+    console.log(`Generic parse: Parsed ${genericData.length} rows from ${file.name}`);
+    const detectedBankType = detectBankType(genericData[0] || {});
+    console.log(`Generic parse: Detected bank type: ${detectedBankType}`);
+    const transactions = convertToTransactions(genericData, detectedBankType);
+    console.log(`Generic parse: Converted to ${transactions.length} transactions.`);
+    return { processedTransactions: transactions };
+
   } catch (error) {
-    console.error('Error parsing file:', error);
-    throw new Error(`Failed to parse ${file.name}: ${error}`);
+    console.error('Error in parseFileData:', error);
+    throw new Error(`Failed to parse ${file.name}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

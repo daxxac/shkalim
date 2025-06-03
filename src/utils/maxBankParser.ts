@@ -12,7 +12,7 @@ export interface MaxBankTransaction {
   chargeCurrency: string;
   originalAmount: number;
   originalCurrency: string;
-  chargeDate: string;
+  chargeDate?: string; // Parsed and formatted charge date
   notes?: string;
   tags?: string;
   source: 'max';
@@ -197,8 +197,19 @@ function parseMaxBankRow(row: any[], columnIndices: Record<string, number>, type
     amount = -amount;
   }
   
+  const chargeDateValue = getValue('chargeDate');
+  let formattedChargeDate: string | undefined = undefined;
+  if (chargeDateValue) {
+    const parsedChargeDate = parseMaxBankDate(chargeDateValue);
+    if (parsedChargeDate) {
+      formattedChargeDate = parsedChargeDate.toISOString().split('T')[0];
+    } else {
+      console.warn('Invalid charge date in MAX row, leaving undefined:', chargeDateValue);
+    }
+  }
+
   return {
-    date: date.toISOString().split('T')[0],
+    date: date.toISOString().split('T')[0], // Transaction Date
     merchant: String(merchantValue || '').trim(),
     category: String(getValue('category') || '').trim(),
     cardDigits: String(getValue('cardDigits') || '').trim(),
@@ -207,7 +218,7 @@ function parseMaxBankRow(row: any[], columnIndices: Record<string, number>, type
     chargeCurrency: String(getValue('chargeCurrency') || 'ILS').trim(),
     originalAmount: Number(getValue('originalAmount')) || amount,
     originalCurrency: String(getValue('originalCurrency') || 'ILS').trim(),
-    chargeDate: String(getValue('chargeDate') || dateValue).trim(),
+    chargeDate: formattedChargeDate, // Charge Date
     notes: String(getValue('notes') || '').trim(),
     tags: String(getValue('tags') || '').trim(),
     source: 'max'
@@ -219,11 +230,12 @@ export function convertMaxToStandardTransaction(maxTransaction: MaxBankTransacti
   
   return {
     id: `max-${maxTransaction.date}-${maxTransaction.chargeAmount}-${Math.random().toString(36).substr(2, 9)}`,
-    date: maxTransaction.date,
+    date: maxTransaction.date, // This is the transaction date
     description,
     amount: maxTransaction.chargeAmount,
     bank: 'max',
     reference: maxTransaction.cardDigits,
-    location: maxTransaction.merchant
+    location: maxTransaction.merchant,
+    chargeDate: maxTransaction.chargeDate // Add the charge date here
   };
 }

@@ -46,7 +46,12 @@
     "quickStats": "Быстрая статистика",
     "positive": "Положительный",
     "negative": "Отрицательный",
-    "allTime": "За все время"
+    "allTime": "За все время",
+    "stats": {
+      "incomeForPeriod": "Доходы за период",
+      "spentByTransactionDate": "Расходы (по дате операции)",
+      "chargedByChargeDate": "Списания (по дате списания)"
+    }
   },
   "transactions": {
     "recentTransactions": "Последние транзакции",
@@ -79,6 +84,7 @@
     "supportedFormats": "Поддерживаемые форматы: CSV, XLS, XLSX",
     "selectBank": "Выберите банк",
     "processing": "Обработка...",
+    "filesProcessed": "файл(-ов) обработано",
     "success": "Файл успешно загружен",
     "error": "Ошибка загрузки файла"
   },
@@ -95,8 +101,11 @@
     "security": "Безопасность",
     "data": "Данные",
     "dangerZone": "Опасная зона",
+    "reset": "Сброс",
+    "confirmReset": "Вы уверены, что хотите стереть данные безвозвратно?",
     "resetData": "Сбросить все данные",
     "resetDescription": "Это навсегда удалит все транзакции и настройки",
+    "resetSuccess": "Ваши данные были успешно удалены",
     "currentData": "Текущие данные"
   },
   "security": {

@@ -7,7 +7,7 @@ export interface CalBankTransaction {
   merchant: string;
   amount: number;
   card: string;
-  chargeDate: string;
+  chargeDate?: string; // Parsed and formatted charge date
   transactionType: string;
   digitalWalletId?: string;
   notes?: string;
@@ -120,27 +120,61 @@ function parseCalBankRow(row: any[], columnIndices: Record<string, number>): Cal
   const dateValue = getValue('date');
   const merchantValue = getValue('merchant');
   const amountValue = getValue('amount');
+  const chargeDateValue = getValue('chargeDate');
   
   if (!dateValue || !merchantValue || amountValue === null || amountValue === undefined) {
     return null;
   }
   
-  // Parse date
-  let date: Date;
+  // Parse transaction date
+  let transactionDateObj: Date | null = null;
   if (typeof dateValue === 'string') {
-    date = new Date(dateValue);
+    // Attempt to parse common date formats, e.g., DD/MM/YYYY or YYYY-MM-DD
+    const parts = dateValue.match(/(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{4})/);
+    if (parts) {
+      // Assuming DD/MM/YYYY for CAL, adjust if needed
+      transactionDateObj = new Date(parseInt(parts[3]), parseInt(parts[2]) - 1, parseInt(parts[1]));
+    } else {
+      transactionDateObj = new Date(dateValue); // Fallback to direct parsing
+    }
   } else if (typeof dateValue === 'number') {
-    // Excel date number
-    date = new Date((dateValue - 25569) * 86400 * 1000);
+    transactionDateObj = new Date((dateValue - 25569) * 86400 * 1000); // Excel date
   } else {
-    date = new Date(dateValue);
+    transactionDateObj = new Date(dateValue); // Try direct
   }
-  
-  if (isNaN(date.getTime())) {
-    console.warn('Invalid date in CAL row:', dateValue);
+
+  if (!transactionDateObj || isNaN(transactionDateObj.getTime())) {
+    console.warn('Invalid transaction date in CAL row:', dateValue);
     return null;
   }
-  
+  const formattedTransactionDate = transactionDateObj.toISOString().split('T')[0];
+
+  // Parse charge date
+  let formattedChargeDate: string | undefined = undefined;
+  if (chargeDateValue) {
+    let chargeDateObj: Date | null = null;
+    if (typeof chargeDateValue === 'string') {
+      const parts = chargeDateValue.match(/(\d{1,2})[\/\.\-](\d{1,2})[\/\.\-](\d{4})/);
+      if (parts) {
+        chargeDateObj = new Date(parseInt(parts[3]), parseInt(parts[2]) - 1, parseInt(parts[1]));
+      } else {
+        chargeDateObj = new Date(chargeDateValue);
+      }
+    } else if (typeof chargeDateValue === 'number') {
+      chargeDateObj = new Date((chargeDateValue - 25569) * 86400 * 1000);
+    } else {
+      chargeDateObj = new Date(chargeDateValue);
+    }
+
+    if (chargeDateObj && !isNaN(chargeDateObj.getTime())) {
+      formattedChargeDate = chargeDateObj.toISOString().split('T')[0];
+    } else {
+      console.warn('Invalid charge date in CAL row, using transaction date as fallback:', chargeDateValue);
+      // formattedChargeDate = formattedTransactionDate; // Or leave undefined if parsing fails
+    }
+  }
+
+
   // Parse amount
   let amount: number;
   if (typeof amountValue === 'string') {
@@ -154,17 +188,17 @@ function parseCalBankRow(row: any[], columnIndices: Record<string, number>): Cal
     return null;
   }
   
-  // CAL transactions are expenses, so make them negative
+  // CAL transactions are expenses, so make them negative if they aren't already
   if (amount > 0) {
     amount = -amount;
   }
   
   return {
-    date: date.toISOString().split('T')[0],
+    date: formattedTransactionDate,
     merchant: String(merchantValue || '').trim(),
     amount,
     card: String(getValue('card') || '').trim(),
-    chargeDate: String(getValue('chargeDate') || dateValue).trim(),
+    chargeDate: formattedChargeDate, // Use the parsed and formatted charge date
     transactionType: String(getValue('transactionType') || '').trim(),
     digitalWalletId: String(getValue('digitalWalletId') || '').trim(),
     notes: String(getValue('notes') || '').trim(),
@@ -175,11 +209,12 @@ function parseCalBankRow(row: any[], columnIndices: Record<string, number>): Cal
 export function convertCalToStandardTransaction(calTransaction: CalBankTransaction): Transaction {
   return {
     id: `cal-${calTransaction.date}-${calTransaction.amount}-${Math.random().toString(36).substr(2, 9)}`,
-    date: calTransaction.date,
+    date: calTransaction.date, // This is the transaction date
     description: calTransaction.merchant,
     amount: calTransaction.amount,
     bank: 'cal',
     reference: calTransaction.card,
-    location: calTransaction.merchant
+    location: calTransaction.merchant,
+    chargeDate: calTransaction.chargeDate // Add the charge date here
   };
 }

@@ -248,79 +248,68 @@ export const useFinanceStore = create<FinanceState>()(
 
       addTransactions: async (file: File, bankType?: string) => {
         try {
-          const newTransactions = await parseFileData(file, bankType);
-          const { transactions, upcomingCharges, categories } = get();
-          
-          // Separate upcoming charges from regular transactions
-          const regularTransactions = newTransactions.filter(t => 
-            !t.description.includes('עסקה עתידית') && 
-            !t.description.includes('חיוב עתידי') &&
-            !t.description.includes('תשלום מתוכנן')
-          );
-          
-          const futureCharges = newTransactions.filter(t => 
-            t.description.includes('עסקה עתידית') || 
-            t.description.includes('חיוב עתידי') ||
-            t.description.includes('תשלום מתוכנן')
-          ).map(t => ({
-            id: t.id,
-            date: t.date,
-            description: t.description,
-            amount: t.amount,
-            bank: t.bank,
-            category: categorizeTransaction(t, categories)
-          } as UpcomingCharge));
-          
+          const parseResult = await parseFileData(file, bankType);
+          const { transactions: currentTransactions, upcomingCharges: currentUpcomingCharges, categories } = get();
+
+          const newMainTransactions = parseResult.processedTransactions || [];
+          const newUpcomingChargesSource = parseResult.processedUpcomingCharges || [];
+
           // Enhanced duplicate detection for regular transactions
           const existingTransactionKeys = new Set(
-            transactions.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
+            currentTransactions.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
           );
           
-          const uniqueTransactions = regularTransactions.filter(t => {
+          const uniqueNewTransactions = newMainTransactions.filter(t => {
             const key = `${t.date}-${t.amount}-${t.description.substring(0, 50)}`;
-            return !existingTransactionKeys.has(key);
-          });
-          
-          // Enhanced duplicate detection for upcoming charges
-          const existingChargeKeys = new Set(
-            upcomingCharges.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
-          );
-          
-          const uniqueCharges = futureCharges.filter(t => {
-            const key = `${t.date}-${t.amount}-${t.description.substring(0, 50)}`;
-            return !existingChargeKeys.has(key);
-          });
-          
-          // Filter out duplicate credit card charges if we already have detailed transactions
-          const filteredTransactions = uniqueTransactions.filter(newTransaction => {
-            // If this is a CAL charge (כ.א.ל חיוב), check if we already have detailed CAL transactions
-            if (newTransaction.description.includes('כ.א.ל חיוב') || newTransaction.description.includes('CAL')) {
-              const hasDetailedCALTransactions = transactions.some(existing => 
-                existing.bank === 'cal' && 
-                Math.abs(new Date(existing.date).getTime() - new Date(newTransaction.date).getTime()) < 7 * 24 * 60 * 60 * 1000 // within 7 days
-              );
-              return !hasDetailedCALTransactions;
+            if (existingTransactionKeys.has(key)) {
+              console.log('Duplicate main transaction skipped:', key);
+              return false;
             }
+            existingTransactionKeys.add(key); // Add to set after checking to prevent self-duplication if multiple identical in new batch
             return true;
           });
-          
-          // Auto-categorize new transactions
-          const categorizedTransactions = filteredTransactions.map(transaction => ({
+
+          // Auto-categorize new main transactions
+          const categorizedNewTransactions = uniqueNewTransactions.map(transaction => ({
             ...transaction,
             category: categorizeTransaction(transaction, categories)
           }));
           
-          set({ 
-            transactions: [...transactions, ...categorizedTransactions].sort(
+          // Enhanced duplicate detection for upcoming charges
+          const existingChargeKeys = new Set(
+            currentUpcomingCharges.map(t => `${t.date}-${t.amount}-${t.description.substring(0, 50)}`)
+          );
+
+          const uniqueNewUpcomingCharges = newUpcomingChargesSource
+            .map(t => ({ // Ensure they are in UpcomingCharge format
+              id: t.id,
+              date: t.chargeDate || t.date, // Prefer chargeDate for upcoming, fallback to transaction date
+              description: t.description,
+              amount: t.amount,
+              bank: t.bank,
+              category: categorizeTransaction(t, categories) // Categorize before adding
+            } as UpcomingCharge))
+            .filter(t => {
+              const key = `${t.date}-${t.amount}-${t.description.substring(0, 50)}`;
+               if (existingChargeKeys.has(key)) {
+                console.log('Duplicate upcoming charge skipped:', key);
+                return false;
+              }
+              existingChargeKeys.add(key);
+              return true;
+            });
+
+          set(state => ({
+            transactions: [...state.transactions, ...categorizedNewTransactions].sort(
               (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
             ),
-            upcomingCharges: [...upcomingCharges, ...uniqueCharges].sort(
+            upcomingCharges: [...state.upcomingCharges, ...uniqueNewUpcomingCharges].sort(
               (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
             )
-          });
+          }));
           
-          console.log(`Added ${categorizedTransactions.length} new transactions`);
-          console.log(`Added ${uniqueCharges.length} new upcoming charges`);
+          console.log(`Added ${categorizedNewTransactions.length} new transactions to main list.`);
+          console.log(`Added ${uniqueNewUpcomingCharges.length} new upcoming charges.`);
         } catch (error) {
           console.error('Error adding transactions:', error);
           throw error;

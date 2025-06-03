@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { UploadZone } from '../components/UploadZone';
 import { DashboardTransactions } from '../components/DashboardTransactions';
+import { TransactionFilters } from '../components/TransactionFilters';
 import { AnalyticsPanel } from '../components/AnalyticsPanel';
 import { SecurityModal } from '../components/SecurityModal';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -13,25 +14,131 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar, DollarSign, CreditCard } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { UpcomingCharges } from '../components/UpcomingCharges';
+export interface DateFilter {
+  start?: Date;
+  end?: Date;
+}
 
 const Index = () => {
   const { t } = useTranslation();
-  const { 
-    isLocked, 
-    unlock, 
-    panicMode, 
-    transactions, 
+  const {
+    isLocked,
+    unlock,
+    panicMode,
+    transactions,
+    upcomingCharges,
     isInitialized,
-    initializeStore 
+    initializeStore,
+    categories // Add categories from store
   } = useFinanceStore();
-  
+
   const [showSecurity, setShowSecurity] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
+  // Filter states
+  const [searchText, setSearchText] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>({});
+  const [incomeFilter, setIncomeFilter] = useState(false);
+  const [expenseFilter, setExpenseFilter] = useState(false);
+  const [dateFilterType, setDateFilterType] = useState<'transaction' | 'charge'>('transaction');
+
   useEffect(() => {
     initializeStore();
   }, [initializeStore]);
+
+  // Set default date filter to current month
+  useEffect(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    setDateFilter({
+      start: startOfMonth,
+      end: endOfMonth
+    });
+  }, []);
+
+  // Reset to first page when filters change (DashboardTransactions will handle its own pagination reset)
+  // useEffect(() => {
+  //   // This might be needed if pagination is also moved here or managed globally
+  // }, [searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, dateFilterType]);
+
+  // Calculate stats for filtered period
+  const stats = useMemo(() => {
+    const startDate = dateFilter.start;
+    const endDate = dateFilter.end;
+
+    // Income & Expenses based on the selected dateFilterType (transaction or charge date)
+    let transactionsForPeriodBasedOnFilterType = transactions;
+    if (startDate || endDate) {
+      transactionsForPeriodBasedOnFilterType = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        const chargeDate = t.chargeDate ? new Date(t.chargeDate) : transactionDate;
+        const filterDate = dateFilterType === 'charge' ? chargeDate : transactionDate;
+        if (startDate && endDate) return filterDate >= startDate && filterDate <= endDate;
+        if (startDate) return filterDate >= startDate;
+        if (endDate) return filterDate <= endDate;
+        return true;
+      });
+    }
+    const incomeBasedOnFilterType = transactionsForPeriodBasedOnFilterType
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expensesBasedOnFilterType = Math.abs(transactionsForPeriodBasedOnFilterType
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0));
+
+    // Actually spent in period (based on transaction.date)
+    let spentTransactions = transactions;
+    if (startDate || endDate) {
+      spentTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        if (startDate && endDate) return transactionDate >= startDate && transactionDate <= endDate;
+        if (startDate) return transactionDate >= startDate;
+        if (endDate) return transactionDate <= endDate;
+        return true;
+      });
+    }
+    const actuallySpentInPeriod = Math.abs(spentTransactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0));
+
+
+    // Get latest balance from Discount Bank
+    const discountBankTransactions = transactions
+      .filter(t => t.bank?.toLowerCase() === 'discount')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const currentBalance = discountBankTransactions.length > 0 ? discountBankTransactions[0].balance || 0 : 0;
+
+    return {
+      income: incomeBasedOnFilterType, // For "Доходы за период"
+      expenses: expensesBasedOnFilterType, // General expenses based on filter type (can be used or replaced)
+      actuallySpentInPeriod,      // For "Расходы (по дате операции)"
+      currentBalance
+    };
+  }, [transactions, dateFilter, dateFilterType]);
+
+
+
+  // Scheduled to charge in period (based on transaction.chargeDate)
+  const filteredCharges = useMemo(() => {
+    let filtered = upcomingCharges;
+
+    if (searchText) {
+      filtered = filtered.filter(t =>
+        t.description.toLowerCase().includes(searchText.toLowerCase())
+      );
+    }
+
+    if (categoryFilter && categoryFilter !== 'all') {
+      filtered = filtered.filter(t => t.category === categoryFilter);
+    }
+
+    return filtered;
+  }, [upcomingCharges, searchText, categoryFilter]);
+  const scheduledToChargeInPeriod = filteredCharges.reduce((sum, charge) => sum + Math.abs(charge.amount), 0);
 
   const handleUnlock = async () => {
     try {
@@ -79,14 +186,14 @@ const Index = () => {
           <div className="absolute top-4 right-4">
             <LanguageSwitcher />
           </div>
-          
+
           <div className="text-center mb-6">
             <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
             <h1 className="text-2xl font-bold text-foreground mb-2">SHKALIM</h1>
             <p className="text-xs text-muted-foreground mb-4">by daxxac</p>
             <p className="text-muted-foreground">{t('auth.enterPassword')}</p>
           </div>
-          
+
           <div className="space-y-4">
             <input
               type="password"
@@ -96,15 +203,15 @@ const Index = () => {
               className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-right bg-background text-foreground"
               onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
             />
-            
-            <Button 
-              onClick={handleUnlock} 
+
+            <Button
+              onClick={handleUnlock}
               className="w-full premium-button"
               disabled={!masterPassword}
             >
               {t('auth.unlock')}
             </Button>
-            
+
             <div className="flex justify-between items-center pt-4 border-t border-border">
               <Button
                 variant="outline"
@@ -113,7 +220,7 @@ const Index = () => {
               >
                 {t('auth.securitySettings')}
               </Button>
-              
+
               <Button
                 variant="destructive"
                 size="sm"
@@ -126,7 +233,7 @@ const Index = () => {
             </div>
           </div>
         </div>
-        
+
         {showSecurity && (
           <SecurityModal
             onClose={() => setShowSecurity(false)}
@@ -144,14 +251,14 @@ const Index = () => {
   const currentMonth = new Date();
   const monthTransactions = transactions.filter(t => {
     const transactionDate = new Date(t.date);
-    return transactionDate.getMonth() === currentMonth.getMonth() && 
-           transactionDate.getFullYear() === currentMonth.getFullYear();
+    return transactionDate.getMonth() === currentMonth.getMonth() &&
+      transactionDate.getFullYear() === currentMonth.getFullYear();
   });
-  
+
   const monthIncome = monthTransactions
     .filter(t => t.amount > 0)
     .reduce((sum, t) => sum + t.amount, 0);
-    
+
   const monthExpenses = Math.abs(monthTransactions
     .filter(t => t.amount < 0)
     .reduce((sum, t) => sum + t.amount, 0));
@@ -162,7 +269,7 @@ const Index = () => {
     const transactionDate = new Date(t.date);
     return transactionDate >= weekStart;
   });
-  
+
   const weekExpenses = Math.abs(weekTransactions
     .filter(t => t.amount < 0)
     .reduce((sum, t) => sum + t.amount, 0));
@@ -181,88 +288,61 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Quick Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Total Balance */}
-            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('dashboard.currentBalance')}
-                </CardTitle>
-                <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                  <Wallet className="h-4 w-4 text-primary" />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="premium-card">
+              <CardContent className="p-6">
+                <div className="text-sm text-muted-foreground mb-2">Текущий баланс (Дисконт)</div>
+                <div className="text-2xl font-bold text-foreground">
+                  ₪{stats.currentBalance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className={`text-3xl font-bold ${totalBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ₪{totalBalance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {totalBalance >= 0 ? '↗ ' + t('dashboard.positive') : '↘ ' + t('dashboard.negative')}
-                </p>
               </CardContent>
             </Card>
 
-            {/* Total Transactions */}
-            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('dashboard.totalTransactions')}
-                </CardTitle>
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-900/30 transition-colors">
-                  <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Card className="premium-card">
+              <CardContent className="p-6">
+                <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.incomeForPeriod')}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  ₪{stats.income.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {transactions.length.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('dashboard.allTime')}
-                </p>
               </CardContent>
             </Card>
 
-            {/* Month Income */}
-            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('navigation.income')}
-                </CardTitle>
-                <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg group-hover:bg-green-200 dark:group-hover:bg-green-900/30 transition-colors">
-                  <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <Card className="premium-card">
+              <CardContent className="p-6">
+                <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.spentByTransactionDate')}</div>
+                <div className="text-2xl font-bold text-red-600">
+                  ₪{stats.actuallySpentInPeriod.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-green-600">
-                  ₪{monthIncome.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('dashboard.thisMonth')}
-                </p>
               </CardContent>
             </Card>
 
-            {/* Month Expenses */}
-            <Card className="premium-card group hover:shadow-lg transition-all duration-300">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {t('navigation.expenses')}
-                </CardTitle>
-                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg group-hover:bg-red-200 dark:group-hover:bg-red-900/30 transition-colors">
-                  <TrendingDown className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <Card className="premium-card">
+              <CardContent className="p-6">
+                <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.chargedByChargeDate')}</div>
+                <div className="text-2xl font-bold text-orange-600">
+                  ₪{scheduledToChargeInPeriod.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-red-600">
-                  ₪{monthExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t('dashboard.thisMonth')}
-                </p>
               </CardContent>
             </Card>
           </div>
+
+          {/* Filters */}
+          <TransactionFilters
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+            searchText={searchText}
+            onSearchTextChange={setSearchText}
+            categoryFilter={categoryFilter}
+            onCategoryFilterChange={setCategoryFilter}
+            categories={categories}
+            incomeFilter={incomeFilter}
+            expenseFilter={expenseFilter}
+            onIncomeFilterChange={setIncomeFilter}
+            onExpenseFilterChange={setExpenseFilter}
+            dateFilterType={dateFilterType}
+            onDateFilterTypeChange={setDateFilterType}
+          />
 
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -276,7 +356,15 @@ const Index = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DashboardTransactions limit={8} />
+                  <DashboardTransactions
+                    // limit={8} // Removed limit to enable full pagination
+                    searchText={searchText}
+                    categoryFilter={categoryFilter}
+                    dateFilter={dateFilter}
+                    incomeFilter={incomeFilter}
+                    expenseFilter={expenseFilter}
+                    dateFilterType={dateFilterType}
+                  />
                 </CardContent>
               </Card>
             </div>
@@ -284,7 +372,7 @@ const Index = () => {
             {/* Analytics Panel */}
             <div className="space-y-6">
               <AnalyticsPanel />
-              
+
               {/* Quick Stats Card */}
               <Card className="premium-card">
                 <CardHeader>
@@ -320,7 +408,14 @@ const Index = () => {
                   <CardTitle>{t('transactions.allTransactions')}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DashboardTransactions />
+                  <DashboardTransactions
+                    searchText={searchText}
+                    categoryFilter={categoryFilter}
+                    dateFilter={dateFilter}
+                    incomeFilter={incomeFilter}
+                    expenseFilter={expenseFilter}
+                    dateFilterType={dateFilterType}
+                  />
                 </CardContent>
               </Card>
             </div>
