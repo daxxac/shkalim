@@ -1,6 +1,6 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '../integrations/supabase/client';
 import { Transaction, BankType, Category, UpcomingCharge } from '../types/finance';
 import { encryptData, decryptData } from '../utils/encryption';
 import { parseFileData } from '../utils/fileParser';
@@ -11,21 +11,27 @@ interface FinanceState {
   transactions: Transaction[];
   upcomingCharges: UpcomingCharge[];
   categories: Category[];
-  isLocked: boolean;
+  isDataLocked: boolean; // Renamed from isLocked
   isInitialized: boolean;
-  masterPasswordHash: string | null;
+  isSupabaseAuthenticated: boolean; // Added
   encryptedDataBlob: string | null; // Для хранения зашифрованных данных
-  _currentPasswordInMemory: string | null; // Временное хранение пароля в памяти
-  currentLanguage: 'ru' | 'en';
+  _currentPasswordInMemory: string | null; // Временное хранение пароля в памяти (теперь для data encryption)
+  currentLanguage: 'ru' | 'en' | 'he';
   
   // Actions
   _updateEncryptedBlob: () => Promise<void>; // Внутренний хелпер, но должен быть в типе для get()
-  initializeStore: () => void;
-  unlock: (password: string) => Promise<void>;
-  lock: () => void;
-  setMasterPassword: (password: string) => void;
-  panicMode: () => void;
-  setLanguage: (lang: 'ru' | 'en') => void;
+  initializeStore: () => Promise<void>; // Changed to async
+  unlockData: (dataEncryptionPassword: string) => Promise<void>; // New name
+  lockData: () => void; // New name
+  setDataEncryptionPassword: (newDataEncryptionPassword: string, oldDataEncryptionPassword?: string) => Promise<void>; // New name & signature
+  panicMode: () => Promise<void>; // Changed to async
+  setLanguage: (lang: 'ru' | 'en' | 'he') => void;
+
+  // Supabase actions
+  handleSupabaseSignUp: (email: string, password: string) => Promise<void>; // Added
+  handleSupabaseLogin: (email: string, password: string) => Promise<void>;
+  handleSupabaseLogout: () => Promise<void>;
+  checkSupabaseSession: () => Promise<void>; // For initialization
   
   addTransactions: (file: File, bankType?: string) => Promise<void>;
   updateTransactionCategory: (id: string, categoryId: string) => void;
@@ -61,17 +67,17 @@ export const useFinanceStore = create<FinanceState>()(
       transactions: [],
       upcomingCharges: [],
       categories: defaultCategories,
-      isLocked: true, // По умолчанию заблокировано
+      isDataLocked: true, // Renamed from isLocked, по умолчанию заблокировано
       isInitialized: false,
-      masterPasswordHash: null,
+      isSupabaseAuthenticated: false, // Reverted to false for actual Supabase auth
       encryptedDataBlob: null, // Начальное значение для зашифрованных данных
       _currentPasswordInMemory: null, // Временное хранение пароля в памяти, не персистентное
       currentLanguage: 'ru',
-
+ 
       // Внутренняя функция для обновления зашифрованного блока данных
       _updateEncryptedBlob: async () => {
         const state = get();
-        if (!state.isLocked && state._currentPasswordInMemory) {
+        if (!state.isDataLocked && state._currentPasswordInMemory) { // Changed isLocked to isDataLocked
           const sensitiveData = {
             transactions: state.transactions,
             upcomingCharges: state.upcomingCharges,
@@ -83,153 +89,215 @@ export const useFinanceStore = create<FinanceState>()(
           } catch (error) {
             console.error("Encryption failed during data update:", error);
             // Рассмотреть возможность блокировки хранилища или уведомления пользователя
-            set({ isLocked: true, _currentPasswordInMemory: null }); // Блокируем в случае ошибки шифрования
+            set({ isDataLocked: true, _currentPasswordInMemory: null }); // Блокируем в случае ошибки шифрования
           }
         }
       },
-
-      initializeStore: () => {
-        // Эта функция вызывается после ре-гидратации состояния из localStorage
-        const state = get();
-        // Если masterPasswordHash существует, приложение должно быть заблокировано
-        // Если masterPasswordHash отсутствует (первый запуск или сброс), оно не "заблокировано" паролем
-        const shouldBeLocked = !!state.masterPasswordHash;
-        set({ isInitialized: true, isLocked: shouldBeLocked });
-        
-        // Если не заблокировано и нет пароля (например, первый запуск без пароля),
-        // и есть данные в encryptedDataBlob (маловероятно, но для полноты), их нужно очистить,
-        // так как нет пароля для их расшифровки или перешифровки.
-        // Однако, если нет masterPasswordHash, то и encryptedDataBlob должен быть null по логике setMasterPassword.
-        // Если же masterPasswordHash есть, но isLocked оказалось false (не должно быть при корректной инициализации),
-        // то это тоже странная ситуация.
-        // Основная логика разблокировки и загрузки данных будет в unlock().
+ 
+      initializeStore: async () => { // Changed to async
+        await get().checkSupabaseSession(); // New logic
+        set({ isInitialized: true }); // isDataLocked is handled by checkSupabaseSession/unlockData
       },
 
-      unlock: async (password: string) => {
-        const state = get();
-
-        if (!state.masterPasswordHash) {
-          // Пароль не установлен. Позволяем "войти" в приложение с пустыми/дефолтными данными.
-          // Шифрования/дешифрования нет.
-          set({
-            isLocked: false,
-            _currentPasswordInMemory: null, // Пароля нет
-            // Убедимся, что данные в состоянии по умолчанию, если они не были загружены
-            transactions: state.transactions.length > 0 ? state.transactions : [], // или defaultTransactions
-            upcomingCharges: state.upcomingCharges.length > 0 ? state.upcomingCharges : [], // или defaultUpcomingCharges
-            categories: state.categories.length > 0 ? state.categories : defaultCategories,
-          });
+      checkSupabaseSession: async () => {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Error checking Supabase session:", error);
+          set({ isSupabaseAuthenticated: false, isInitialized: true }); // Ensure initialized even on error
           return;
         }
+        if (session) {
+          set({ isSupabaseAuthenticated: true });
+        } else {
+          set({ isSupabaseAuthenticated: false, isDataLocked: true, _currentPasswordInMemory: null });
+        }
+      },
 
-        const isValid = await verifyPassword(password, state.masterPasswordHash);
-        if (!isValid) {
-          throw new Error('Invalid password');
+      handleSupabaseSignUp: async (email, password) => {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) {
+          set({ isSupabaseAuthenticated: false });
+          throw error;
+        }
+        // Supabase often auto-logs-in the user on successful sign-up and returns a session.
+        // Or, a confirmation email might be sent. For now, assume auto-login.
+        if (data.session) {
+          set({ isSupabaseAuthenticated: true });
+        } else {
+          // Handle cases where confirmation is needed - for now, treat as not fully authenticated
+          // Or, prompt user to check email.
+          set({ isSupabaseAuthenticated: false });
+          // You might want to throw a specific error or return a status here
+          // For simplicity, we'll let the UI handle "check your email" if no session.
+          console.log("Sign up successful, but no immediate session. User might need to confirm email.");
+        }
+      },
+
+      handleSupabaseLogin: async (email, password) => {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          set({ isSupabaseAuthenticated: false });
+          throw error;
+        }
+        if (data.session) {
+          set({ isSupabaseAuthenticated: true });
+        } else {
+           // Should not happen with password auth if no error, but as a safeguard
+          set({ isSupabaseAuthenticated: false });
+        }
+      },
+
+      handleSupabaseLogout: async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error("Supabase signout error:", error);
+          // Still proceed with client-side cleanup
+        }
+        set({
+          isSupabaseAuthenticated: false,
+          isDataLocked: true, // Lock data on logout
+          _currentPasswordInMemory: null,
+          transactions: [],
+          upcomingCharges: [],
+          categories: defaultCategories,
+          // Keep encryptedDataBlob, so user can log back in and unlock
+        });
+      },
+      
+      unlockData: async (dataEncryptionPassword: string) => { // Renamed from unlock
+        const state = get();
+
+        if (!state.isSupabaseAuthenticated) {
+          // This check might be redundant if UI prevents calling this, but good for safety
+          throw new Error("User not authenticated with Supabase.");
         }
 
         if (state.encryptedDataBlob) {
           try {
-            const decrypted = await decryptData(state.encryptedDataBlob, password);
+            const decrypted = await decryptData(state.encryptedDataBlob, dataEncryptionPassword);
             set({
               transactions: decrypted.transactions || [],
               upcomingCharges: decrypted.upcomingCharges || [],
               categories: decrypted.categories || defaultCategories,
-              isLocked: false,
-              _currentPasswordInMemory: password,
+              isDataLocked: false, // Changed from isLocked
+              _currentPasswordInMemory: dataEncryptionPassword,
             });
           } catch (error) {
-            console.error("Decryption failed during unlock:", error);
-            // Важно не разблокировать и не загружать данные при ошибке дешифровки.
-            // Можно также сбросить _currentPasswordInMemory, но isLocked уже true или станет при ошибке.
-            set({ isLocked: true, _currentPasswordInMemory: null });
+            console.error("Decryption failed during data unlock:", error);
+            set({ isDataLocked: true, _currentPasswordInMemory: null }); // Ensure data is locked
             throw new Error('Decryption failed. Data might be corrupted or password was changed.');
           }
         } else {
-          // Пароль верный, но зашифрованного блока нет (например, сразу после setMasterPassword, до изменений данных)
-          // Или если данные были сброшены, а пароль остался.
+          // No data blob to decrypt, but user is authenticated.
+          // This could be a new user or data was reset.
           set({
-            isLocked: false,
-            _currentPasswordInMemory: password,
-            // Убедимся, что данные в состоянии по умолчанию
+            isDataLocked: false, // No data to be locked
+            _currentPasswordInMemory: dataEncryptionPassword, // Store for future encryption
             transactions: [],
             upcomingCharges: [],
             categories: defaultCategories,
           });
         }
       },
-
-      lock: () => {
-        set({
-          isLocked: true,
-          _currentPasswordInMemory: null,
-          // Очищаем чувствительные данные из оперативной памяти
-          transactions: [],
-          upcomingCharges: [],
-          // Категории можно оставить defaultCategories, т.к. они не так чувствительны,
-          // либо тоже очищать в [], если требуется максимальная секьюрность.
-          // Оставим defaultCategories для удобства, если пользователь просто блокирует/разблокирует.
-          categories: defaultCategories,
+ 
+      lockData: () => { // Renamed from lock
+        console.log('[financeStore] lockData called');
+        set(state => {
+          console.log('[financeStore] Current state before lockData:', state);
+          const newState = {
+            isDataLocked: true, // Changed from isLocked
+            _currentPasswordInMemory: null,
+            // Очищаем чувствительные данные из оперативной памяти
+            transactions: [],
+            upcomingCharges: [],
+            categories: defaultCategories,
+          };
+          console.log('[financeStore] New state after lockData:', newState);
+          return newState;
         });
       },
-
-      setMasterPassword: async (password: string) => {
+ 
+      setDataEncryptionPassword: async (newDataEncryptionPassword: string, oldDataEncryptionPassword?: string) => {
         const state = get();
-        if (state.masterPasswordHash) {
-          // TODO: В будущем здесь может быть логика смены пароля,
-          // которая потребует старый пароль для расшифровки и перешифровки данных.
-          // Пока что просто запрещаем установку нового, если уже есть.
-          throw new Error("Master password is already set. Use 'change password' functionality (not implemented yet).");
-        }
 
-        const newHash = await hashPassword(password);
-        const sensitiveData = {
-          transactions: state.transactions, // На момент первой установки это будут дефолтные/пустые данные
+        if (!state.isSupabaseAuthenticated) {
+          throw new Error("User not authenticated with Supabase.");
+        }
+        
+        let currentSensitiveData = {
+          transactions: state.transactions, // These might be empty if data is locked
           upcomingCharges: state.upcomingCharges,
           categories: state.categories,
         };
 
+        if (oldDataEncryptionPassword && state.encryptedDataBlob) {
+          // If changing password and data exists, decrypt with old password first
+          try {
+            const decrypted = await decryptData(state.encryptedDataBlob, oldDataEncryptionPassword);
+            currentSensitiveData = { // Use the freshly decrypted data
+              transactions: decrypted.transactions || [],
+              upcomingCharges: decrypted.upcomingCharges || [],
+              categories: decrypted.categories || defaultCategories,
+            };
+          } catch (error) {
+            console.error("Failed to decrypt with old password during password change:", error);
+            throw new Error("Old data encryption password was incorrect.");
+          }
+        } else if (!oldDataEncryptionPassword && state.encryptedDataBlob) {
+          // This case means: setting a password for the first time (no oldPass) BUT a blob exists.
+          // This implies the user logged out and back in, and now wants to set a password for existing data.
+          // This is problematic because we don't know the key for the existing blob.
+          // The flow should be: Supabase login -> unlockData (with existing key) -> then optionally setDataEncryptionPassword (to change it).
+          // If encryptedDataBlob exists, oldDataEncryptionPassword MUST be provided to change it.
+          // If it's the very first time (no blob), then oldDataEncryptionPassword is not needed.
+          console.warn("Attempting to set a new data encryption password for existing encrypted data without providing the old password. This operation is blocked to prevent data loss. Please unlock data first if you wish to change the password.");
+          throw new Error("Cannot set new password for existing encrypted data without the old password. Unlock data first.");
+        }
+        // If it's the very first time setting password (no blob yet), currentSensitiveData will be empty/default.
+
         try {
-          const newEncryptedBlob = await encryptData(sensitiveData, password);
+          const newEncryptedBlob = await encryptData(currentSensitiveData, newDataEncryptionPassword);
           set({
-            masterPasswordHash: newHash,
             encryptedDataBlob: newEncryptedBlob,
-            isLocked: false, // Разблокируем после установки пароля
-            _currentPasswordInMemory: password,
+            isDataLocked: false,
+            _currentPasswordInMemory: newDataEncryptionPassword,
+            // Ensure the potentially just-decrypted or current state data is what's "live"
+            transactions: currentSensitiveData.transactions,
+            upcomingCharges: currentSensitiveData.upcomingCharges,
+            categories: currentSensitiveData.categories,
           });
         } catch (error) {
-          console.error("Encryption failed during initial password setup:", error);
-          // Сбрасываем попытку установки пароля, если шифрование не удалось
-          set({ masterPasswordHash: null, encryptedDataBlob: null, isLocked: true, _currentPasswordInMemory: null });
-          throw new Error("Failed to set up master password due to encryption error.");
+          console.error("Encryption failed during data encryption password setup:", error);
+          // Do not change _currentPasswordInMemory or isDataLocked if encryption fails
+          throw new Error("Failed to set up data encryption password due to encryption error.");
         }
       },
-
-      panicMode: () => {
-        // Очищаем все из localStorage, где persist хранит свои данные
+ 
+      panicMode: async () => { // Changed to async
+        if (get().isSupabaseAuthenticated) {
+          await supabase.auth.signOut().catch(err => console.error("Supabase signout error during panic:", err));
+        }
         localStorage.removeItem('finance-storage'); // Имя из persist config
-
-        // Если вы используете indexedDB для чего-то еще специфичного для finance-app,
-        // и persist middleware настроен на indexedDB (по умолчанию это localStorage).
-        // indexedDB.deleteDatabase('finance-app'); // Раскомментировать, если persist использует indexedDB
-
-        // Сбрасываем состояние Zustand к исходному, включая все чувствительные данные
+ 
         set({
           transactions: [],
           upcomingCharges: [],
           categories: defaultCategories,
-          isLocked: true, // После паники приложение должно быть заблокировано (и без пароля)
-          isInitialized: false, // Потребуется реинициализация
-          masterPasswordHash: null,
-          encryptedDataBlob: null, // Очищаем зашифрованные данные
+          isDataLocked: true, // Ensure data is locked
+          // isSupabaseAuthenticated: false, // KEEPING THIS TRUE or not setting it from true
+                                         // to prevent Supabase login screen.
+          isInitialized: false, // This will force re-check on reload, which will set isSupabaseAuth to true.
+          encryptedDataBlob: null,
           _currentPasswordInMemory: null,
-          // currentLanguage можно оставить или сбросить к дефолтному, например 'ru'
           currentLanguage: 'ru',
         });
-        // Перезагрузка страницы для чистого старта и применения сброшенного состояния
         window.location.reload();
       },
-
-      setLanguage: (lang: 'ru' | 'en') => {
+ 
+      setLanguage: (lang: 'ru' | 'en' | 'he') => {
         set({ currentLanguage: lang });
       },
 
@@ -552,46 +620,27 @@ export const useFinanceStore = create<FinanceState>()(
     {
       name: 'finance-storage', // Имя хранилища в localStorage
       partialize: (state) => ({
-        // Сохраняем только masterPasswordHash, encryptedDataBlob и нечувствительные данные
-        masterPasswordHash: state.masterPasswordHash,
+        // Сохраняем только encryptedDataBlob и нечувствительные данные
+        // masterPasswordHash: state.masterPasswordHash, // Removed
         encryptedDataBlob: state.encryptedDataBlob,
         currentLanguage: state.currentLanguage,
+        // isSupabaseAuthenticated is not persisted; session is source of truth.
         // transactions, upcomingCharges, categories НЕ сохраняются напрямую
       }),
-      // onRehydrateStorage можно использовать для дополнительной логики после загрузки,
-      // но initializeStore уже вызывается и обрабатывает isLocked.
-      // onRehydrateStorage: () => (state, error) => {
-      //   if (state) {
-      //     state.isInitialized = true;
-      //     state.isLocked = !!state.masterPasswordHash;
-      //   }
-      // }
+      // onRehydrateStorage can be used if needed, but initializeStore handles async session check.
     }
   )
 );
-
+ 
 // Helper function to generate random colors for new categories
 function getRandomColor(): string {
   const colors = [
-    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', 
+    '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16',
     '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
     '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
     '#ec4899', '#f43f5e'
   ];
   return colors[Math.floor(Math.random() * colors.length)];
 }
-
-// Helper functions for password hashing
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const passwordHash = await hashPassword(password);
-  return passwordHash === hash;
-}
+ 
+// Password hashing functions (hashPassword, verifyPassword) are removed.

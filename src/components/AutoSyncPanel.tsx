@@ -21,15 +21,15 @@ export const AutoSyncPanel: React.FC = () => {
           <div className="text-center py-8">
             <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500 mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Автосинхронизация временно отключена
+              {t('autoSync.temporarilyDisabled')}
             </h3>
             <p className="text-muted-foreground mb-4">
-              Мы сосредоточились на ручной загрузке файлов для лучшей совместимости и безопасности.
+              {t('autoSync.manualUploadFocus')}
             </p>
             <div className="flex items-center justify-center gap-2 text-primary">
               <Upload className="h-4 w-4" />
               <span className="text-sm font-medium">
-                Используйте вкладку "Загрузка" для добавления транзакций
+                {t('autoSync.useUploadTab')}
               </span>
             </div>
           </div>

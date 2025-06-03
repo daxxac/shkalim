@@ -1,15 +1,29 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar as CalendarIcon, X } from 'lucide-react';
+import { Calendar as CalendarIcon, X, Download } from 'lucide-react';
 import { Button } from './ui/button';
+import { useFinanceStore } from '../store/financeStore';
+import { useTheme } from '../hooks/useTheme';
+import {
+  generatePdfReport,
+  generateExcelReport,
+  FilterState
+} from '../services/exportService';
+import type { ThemeColors } from '../utils/pdfGenerator'; // For PDF theme
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Toggle } from './ui/toggle';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from './ui/dropdown-menu'; // Added Dropdown imports
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 
-interface DateFilter {
+export interface DateFilter { // Added export
   start?: Date;
   end?: Date;
 }
@@ -46,6 +60,40 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   onDateFilterTypeChange
 }) => {
   const { t } = useTranslation();
+  const { transactions: allTransactions, categories: allCategories } = useFinanceStore();
+  const { theme } = useTheme();
+
+  const handleExportPDF = async () => {
+    const activeFilters: FilterState = {
+      dateFilter,
+      searchText,
+      categoryFilter,
+      incomeFilter,
+      expenseFilter,
+    };
+
+    // Define basic theme colors based on the app's theme
+    // This can be expanded with more specific colors from your Tailwind config if needed
+    const themeColors: ThemeColors = {
+      textColor: theme === 'dark' ? '#FFFFFF' : '#000000',
+      headerColor: theme === 'dark' ? '#E5E7EB' : '#1F2937', // Example: light gray for dark, dark gray for light
+      accentColor: theme === 'dark' ? '#3B82F6' : '#2563EB', // Example: blue accent
+    };
+    const logoSrc = '/logo.png'; // Path to your logo in the public folder
+
+    await generatePdfReport(activeFilters, allTransactions, allCategories, themeColors, logoSrc, t);
+  };
+
+  const handleExportExcel = async () => {
+    const activeFilters: FilterState = {
+      dateFilter,
+      searchText,
+      categoryFilter,
+      incomeFilter,
+      expenseFilter,
+    };
+    await generateExcelReport(activeFilters, allTransactions, allCategories, t);
+  };
 
   const clearDateFilter = () => {
     onDateFilterChange({});
@@ -124,7 +172,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             variant="outline"
             className="text-sm"
           >
-            Дата транзакции
+            {t('transactionFilters.dateFilterType.transaction')}
           </Toggle>
           <Toggle
             pressed={dateFilterType === 'charge'}
@@ -132,7 +180,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             variant="outline"
             className="text-sm"
           >
-            Дата списания
+            {t('transactionFilters.dateFilterType.charge')}
           </Toggle>
         </div>
       )}
@@ -142,7 +190,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         {/* Start Date */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground">
-            {dateFilterType === 'transaction' ? 'Дата транзакции с:' : 'Дата списания с:'}
+            {dateFilterType === 'transaction' ? t('transactionFilters.startDate.transactionLabel') : t('transactionFilters.startDate.chargeLabel')}
           </label>
           <Popover>
             <PopoverTrigger asChild>
@@ -154,7 +202,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateFilter.start ? format(dateFilter.start, 'dd/MM/yyyy') : 'Выберите дату'}
+                {dateFilter.start ? format(dateFilter.start, 'dd/MM/yyyy') : t('transactionFilters.datePlaceholder')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -172,7 +220,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         {/* End Date */}
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-muted-foreground">
-            {dateFilterType === 'transaction' ? 'Дата транзакции до:' : 'Дата списания до:'}
+            {dateFilterType === 'transaction' ? t('transactionFilters.endDate.transactionLabel') : t('transactionFilters.endDate.chargeLabel')}
           </label>
           <Popover>
             <PopoverTrigger asChild>
@@ -184,7 +232,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateFilter.end ? format(dateFilter.end, 'dd/MM/yyyy') : 'Выберите дату'}
+                {dateFilter.end ? format(dateFilter.end, 'dd/MM/yyyy') : t('transactionFilters.datePlaceholder')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -203,7 +251,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         {hasDateFilter && (
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-muted-foreground opacity-0">
-              Очистить
+              {t('transactionFilters.clearDatesLabel')}
             </label>
             <Button
               variant="outline"
@@ -211,10 +259,30 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
               className="w-auto"
             >
               <X className="mr-2 h-4 w-4" />
-              Очистить даты
+              {t('transactionFilters.clearDatesButton')}
             </Button>
           </div>
         )}
+      </div>
+
+      {/* Export Button */}
+      <div className="flex justify-end mt-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              {t('navigation.exportData')}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={handleExportPDF}>
+              {t('export.asPdf', 'Export as PDF')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleExportExcel}>
+              {t('export.asExcel', 'Export as Excel')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

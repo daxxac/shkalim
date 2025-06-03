@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
+import { Input } from '../components/ui/input';
 import { DashboardLayout } from '../components/DashboardLayout';
 import { UploadZone } from '../components/UploadZone';
 import { DashboardTransactions } from '../components/DashboardTransactions';
@@ -11,9 +12,10 @@ import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { DataManagement } from '../components/DataManagement';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar, DollarSign, CreditCard } from 'lucide-react';
+import { Shield, AlertTriangle, TrendingUp, TrendingDown, Wallet, Calendar, DollarSign, CreditCard, Mail, LogIn as LogInIcon, Loader2, UserPlus } from 'lucide-react';
 import { toast } from '../hooks/use-toast';
 import { UpcomingCharges } from '../components/UpcomingCharges';
+
 export interface DateFilter {
   start?: Date;
   end?: Date;
@@ -22,21 +24,36 @@ export interface DateFilter {
 const Index = () => {
   const { t } = useTranslation();
   const {
-    isLocked,
-    unlock,
+    isDataLocked,
+    unlockData,
     panicMode,
     transactions,
     upcomingCharges,
     isInitialized,
     initializeStore,
-    categories // Add categories from store
+    categories,
+    isSupabaseAuthenticated,
+    handleSupabaseLogin,
+    handleSupabaseSignUp,
+    encryptedDataBlob,
+    setDataEncryptionPassword 
   } = useFinanceStore();
 
-  const [showSecurity, setShowSecurity] = useState(false);
-  const [masterPassword, setMasterPassword] = useState('');
+  console.log('[IndexPage] Rendering - isDataLocked:', isDataLocked, 'isSupabaseAuthenticated:', isSupabaseAuthenticated, 'isInitialized:', isInitialized, 'encryptedDataBlob exists:', !!encryptedDataBlob);
+
+  const [showSecurityModal, setShowSecurityModal] = useState(false);
+  const [dataEncryptionPasswordInput, setDataEncryptionPasswordInput] = useState('');
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Filter states
+  const [email, setEmail] = useState('');
+  const [supabasePassword, setSupabasePassword] = useState('');
+  const [confirmSupabasePassword, setConfirmSupabasePassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authUiMode, setAuthUiMode] = useState<'login' | 'register'>('login');
+  
+  const [securityModalMode, setSecurityModalMode] = useState<'set_initial_data_password' | 'unlock_data' | 'change_data_password'>('unlock_data');
+
   const [searchText, setSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<DateFilter>({});
@@ -48,29 +65,22 @@ const Index = () => {
     initializeStore();
   }, [initializeStore]);
 
-  // Set default date filter to current month
   useEffect(() => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    setDateFilter({
-      start: startOfMonth,
-      end: endOfMonth
-    });
+    setDateFilter({ start: startOfMonth, end: endOfMonth });
   }, []);
 
-  // Reset to first page when filters change (DashboardTransactions will handle its own pagination reset)
-  // useEffect(() => {
-  //   // This might be needed if pagination is also moved here or managed globally
-  // }, [searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, dateFilterType]);
+  useEffect(() => {
+    if (isSupabaseAuthenticated && isDataLocked && !encryptedDataBlob && !showSecurityModal) {
+      openSecurityModal('set_initial_data_password');
+    }
+  }, [isSupabaseAuthenticated, isDataLocked, encryptedDataBlob, showSecurityModal]);
 
-  // Calculate stats for filtered period
   const stats = useMemo(() => {
     const startDate = dateFilter.start;
     const endDate = dateFilter.end;
-
-    // Income & Expenses based on the selected dateFilterType (transaction or charge date)
     let transactionsForPeriodBasedOnFilterType = transactions;
     if (startDate || endDate) {
       transactionsForPeriodBasedOnFilterType = transactions.filter(t => {
@@ -89,8 +99,6 @@ const Index = () => {
     const expensesBasedOnFilterType = Math.abs(transactionsForPeriodBasedOnFilterType
       .filter(t => t.amount < 0)
       .reduce((sum, t) => sum + t.amount, 0));
-
-    // Actually spent in period (based on transaction.date)
     let spentTransactions = transactions;
     if (startDate || endDate) {
       spentTransactions = transactions.filter(t => {
@@ -104,57 +112,113 @@ const Index = () => {
     const actuallySpentInPeriod = Math.abs(spentTransactions
       .filter(t => t.amount < 0)
       .reduce((sum, t) => sum + t.amount, 0));
-
-
-    // Get latest balance from Discount Bank
     const discountBankTransactions = transactions
       .filter(t => t.bank?.toLowerCase() === 'discount')
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     const currentBalance = discountBankTransactions.length > 0 ? discountBankTransactions[0].balance || 0 : 0;
-
     return {
-      income: incomeBasedOnFilterType, // For "Доходы за период"
-      expenses: expensesBasedOnFilterType, // General expenses based on filter type (can be used or replaced)
-      actuallySpentInPeriod,      // For "Расходы (по дате операции)"
+      income: incomeBasedOnFilterType,
+      expenses: expensesBasedOnFilterType,
+      actuallySpentInPeriod,
       currentBalance
     };
   }, [transactions, dateFilter, dateFilterType]);
 
-
-
-  // Scheduled to charge in period (based on transaction.chargeDate)
   const filteredCharges = useMemo(() => {
     let filtered = upcomingCharges;
-
     if (searchText) {
       filtered = filtered.filter(t =>
         t.description.toLowerCase().includes(searchText.toLowerCase())
       );
     }
-
     if (categoryFilter && categoryFilter !== 'all') {
       filtered = filtered.filter(t => t.category === categoryFilter);
     }
-
     return filtered;
   }, [upcomingCharges, searchText, categoryFilter]);
   const scheduledToChargeInPeriod = filteredCharges.reduce((sum, charge) => sum + Math.abs(charge.amount), 0);
 
-  const handleUnlock = async () => {
+  const handleUnlockDataSubmit = async () => {
+    if (!dataEncryptionPasswordInput) {
+      toast({ title: t('auth.error', 'Error'), description: t('auth.emptyDataPassword', 'Data encryption password cannot be empty.'), variant: "destructive" });
+      return;
+    }
     try {
-      await unlock(masterPassword);
-      setMasterPassword('');
+      await unlockData(dataEncryptionPasswordInput);
+      setDataEncryptionPasswordInput('');
       toast({
-        title: t('auth.welcome'),
-        description: t('auth.systemUnlocked'),
+        title: t('auth.dataUnlockedTitle', 'Data Unlocked'),
+        description: t('auth.dataUnlockedSuccess', 'Your data has been successfully decrypted.'),
       });
     } catch (error) {
       toast({
-        title: t('auth.error'),
-        description: t('auth.wrongPassword'),
+        title: t('auth.error', 'Error'),
+        description: error instanceof Error ? error.message : t('auth.wrongDataPassword', 'Incorrect data encryption password.'),
         variant: "destructive",
       });
     }
+  };
+
+  const handleSupabaseLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !supabasePassword) {
+      setAuthError(t('auth.emptyCredentials', 'Email and password cannot be empty.'));
+      return;
+    }
+    setAuthError(null);
+    setIsAuthLoading(true);
+    try {
+      await handleSupabaseLogin(email, supabasePassword);
+      toast({
+        title: t('auth.loginSuccessTitle', 'Login Successful'),
+        description: t('auth.welcomeBack', 'Welcome back!'),
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('auth.loginFailedError', 'Login failed. Please check your credentials.');
+      setAuthError(message);
+      toast({
+        title: t('auth.loginErrorTitle', 'Login Failed'),
+        description: message,
+        variant: "destructive",
+      });
+    }
+    setIsAuthLoading(false);
+  };
+  
+  const handleSupabaseSignUpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (supabasePassword !== confirmSupabasePassword) {
+      setAuthError(t('auth.passwordMismatch', 'Passwords do not match.'));
+      return;
+    }
+    if (!email || !supabasePassword) {
+      setAuthError(t('auth.emptyCredentials', 'Email and password cannot be empty.'));
+      return;
+    }
+    setAuthError(null);
+    setIsAuthLoading(true);
+    try {
+      await handleSupabaseSignUp(email, supabasePassword);
+      toast({
+        title: t('auth.signupSuccessTitle', 'Sign Up Successful'),
+        description: t('auth.signupSuccessDescription', 'Please check your email to confirm your account if required, or try logging in.'),
+      });
+      setAuthUiMode('login'); 
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t('auth.signupFailedError', 'Sign up failed. Please try again.');
+      setAuthError(message);
+      toast({
+        title: t('auth.signupErrorTitle', 'Sign Up Failed'),
+        description: message,
+        variant: "destructive",
+      });
+    }
+    setIsAuthLoading(false);
+  };
+
+  const openSecurityModal = (mode: 'set_initial_data_password' | 'unlock_data' | 'change_data_password') => {
+    setSecurityModalMode(mode);
+    setShowSecurityModal(true);
   };
 
   const handlePanicMode = () => {
@@ -179,48 +243,182 @@ const Index = () => {
     );
   }
 
-  if (isLocked) {
+  // This block is removed to allow core functionality without Supabase auth first.
+  if (!isSupabaseAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
         <div className="premium-card p-8 max-w-md w-full mx-4">
           <div className="absolute top-4 right-4">
             <LanguageSwitcher />
           </div>
+          <div className="text-center mb-6">
+            {authUiMode === 'login' ? 
+              <LogInIcon className="mx-auto h-12 w-12 text-primary mb-4" /> :
+              <UserPlus className="mx-auto h-12 w-12 text-primary mb-4" />
+            }
+            <h1 className="text-2xl font-bold text-foreground mb-2">SHKALIM</h1>
+            <p className="text-xs text-muted-foreground mb-4">{t('alt.byDaxxac')}</p>
+            <p className="text-muted-foreground">
+              {authUiMode === 'login' 
+                ? t('auth.supabaseLoginPrompt', 'Please log in to continue')
+                : t('auth.supabaseSignUpPrompt', 'Create an account to get started')}
+            </p>
+          </div>
 
+          {authUiMode === 'login' ? (
+            <form onSubmit={handleSupabaseLoginSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email_login" className="block text-sm font-medium text-foreground mb-1">{t('auth.emailLabel', 'Email')}</label>
+                <div className="relative">
+                  <Input id="email_login" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholderLogin', 'your@email.com')} required className="bg-background" disabled={isAuthLoading} />
+                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><Mail className="h-5 w-5 text-gray-400" /></span>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="supabasePassword_login" className="block text-sm font-medium text-foreground mb-1">{t('auth.passwordLabel', 'Password')}</label>
+                <div className="relative">
+                  <Input id="supabasePassword_login" type="password" value={supabasePassword} onChange={(e) => setSupabasePassword(e.target.value)} placeholder={t('auth.passwordPlaceholderLogin', 'Enter your password')} required className="bg-background" disabled={isAuthLoading} />
+                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
+                </div>
+              </div>
+              {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
+              <Button type="submit" className="w-full premium-button" disabled={isAuthLoading || !email || !supabasePassword}>
+                {isAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('auth.loginButton', 'Log In')}
+              </Button>
+              <Button variant="link" type="button" onClick={() => { setAuthUiMode('register'); setAuthError(null); setEmail(''); setSupabasePassword(''); setConfirmSupabasePassword(''); }} className="w-full">
+                {t('auth.switchToSignUp', "Don't have an account? Sign Up")}
+              </Button>
+            </form>
+          ) : ( // Registration form
+            <form onSubmit={handleSupabaseSignUpSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="email_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.emailLabel', 'Email')}</label>
+                <div className="relative">
+                  <Input id="email_signup" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('auth.emailPlaceholderSignup', 'your@email.com')} required className="bg-background" disabled={isAuthLoading} />
+                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><Mail className="h-5 w-5 text-gray-400" /></span>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="supabasePassword_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.passwordLabel', 'Password')}</label>
+                <div className="relative">
+                  <Input id="supabasePassword_signup" type="password" value={supabasePassword} onChange={(e) => setSupabasePassword(e.target.value)} placeholder={t('auth.passwordPlaceholderSignup', 'Create a password (min. 6 characters)')} required className="bg-background" disabled={isAuthLoading} minLength={6}/>
+                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
+                </div>
+              </div>
+              <div>
+                <label htmlFor="confirmSupabasePassword_signup" className="block text-sm font-medium text-foreground mb-1">{t('auth.confirmPasswordLabel', 'Confirm Password')}</label>
+                <div className="relative">
+                  <Input id="confirmSupabasePassword_signup" type="password" value={confirmSupabasePassword} onChange={(e) => setConfirmSupabasePassword(e.target.value)} placeholder={t('auth.confirmPasswordPlaceholderSignup', 'Confirm your password')} required className="bg-background" disabled={isAuthLoading} minLength={6}/>
+                  <span className="absolute inset-y-0 right-0 pr-3 flex items-center"><CreditCard className="h-5 w-5 text-gray-400" /></span>
+                </div>
+              </div>
+              {authError && <p className="text-sm text-red-500 text-center">{authError}</p>}
+              <Button type="submit" className="w-full premium-button" disabled={isAuthLoading || !email || !supabasePassword || !confirmSupabasePassword || supabasePassword !== confirmSupabasePassword}>
+                {isAuthLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {t('auth.signUpButton', 'Sign Up')}
+              </Button>
+              <Button variant="link" type="button" onClick={() => { setAuthUiMode('login'); setAuthError(null); setEmail(''); setSupabasePassword(''); }} className="w-full">
+                {t('auth.switchToLogin', 'Already have an account? Log In')}
+              </Button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isDataLocked) {
+    // This condition now implicitly means isSupabaseAuthenticated is true OR we are allowing non-Supabase users
+    // to access local data encryption.
+    if (isSupabaseAuthenticated && isDataLocked && !encryptedDataBlob) { 
+      // This case is for a Supabase authenticated user setting up their *first* data encryption password.
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
+              <div className="text-center premium-card p-8 max-w-md w-full mx-4">
+                  <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
+                  <h2 className="text-xl font-semibold">{t('auth.initialDataSetupTitle', 'Initial Data Setup Required')}</h2>
+                  <p className="text-muted-foreground mb-4">{t('auth.initialDataSetupPrompt', 'Please set your data encryption password to proceed.')}</p>
+                  <Button onClick={() => openSecurityModal('set_initial_data_password')}>
+                      {t('auth.setDataEncryptionPasswordButton', 'Set Data Encryption Password')}
+                  </Button>
+                  {showSecurityModal && securityModalMode === 'set_initial_data_password' && (
+                    <SecurityModal
+                      mode="set_initial_data_password"
+                      onClose={() => {
+                        setShowSecurityModal(false);
+                      }}
+                      onSuccess={() => {
+                        setShowSecurityModal(false);
+                        toast({
+                          title: t('auth.dataPasswordSetTitle', 'Data Encryption Password Set'),
+                          description: t('auth.dataNowSecure', 'Your data is now encrypted and secured.'),
+                        });
+                      }}
+                    />
+                  )}
+              </div>
+          </div>
+      );
+    }
+     // This case is for a user (Supabase authenticated or not) who has no encrypted data yet.
+     // The top-level useEffect (around line 82) will trigger the modal if they are also Supabase authenticated.
+     // If they are NOT Supabase authenticated, they still need to set up a local data password.
+    if (!encryptedDataBlob && !showSecurityModal) { 
+        // This screen is a placeholder or a more explicit prompt if the modal isn't auto-triggered by the useEffect
+        // (e.g. if Supabase auth is false, the useEffect on L82 won't trigger it).
+        return ( 
+             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
+                <div className="text-center premium-card p-8 max-w-md w-full mx-4">
+                    <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
+                    <h2 className="text-xl font-semibold">{t('auth.initialDataSetupTitle', 'Initial Data Setup Required')}</h2>
+                    <p className="text-muted-foreground mb-4">{t('auth.initialDataSetupPrompt', 'Please set your data encryption password to proceed.')}</p>
+                     <Button onClick={() => openSecurityModal('set_initial_data_password')}>
+                        {t('auth.setDataEncryptionPasswordButton', 'Set Data Encryption Password')}
+                    </Button>
+                    {/* The modal will be shown via the button click or the useEffect if conditions met */}
+                </div>
+            </div>
+        );
+    }
+
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="premium-card p-8 max-w-md w-full mx-4">
+          <div className="absolute top-4 right-4">
+            <LanguageSwitcher />
+          </div>
           <div className="text-center mb-6">
             <Shield className="mx-auto h-12 w-12 text-primary mb-4" />
             <h1 className="text-2xl font-bold text-foreground mb-2">SHKALIM</h1>
-            <p className="text-xs text-muted-foreground mb-4">by daxxac</p>
-            <p className="text-muted-foreground">{t('auth.enterPassword')}</p>
+            <p className="text-xs text-muted-foreground mb-4">{t('alt.byDaxxac')}</p>
+            <p className="text-muted-foreground">{t('auth.enterDataPasswordPrompt', 'Enter your Data Encryption Password')}</p>
           </div>
-
           <div className="space-y-4">
-            <input
+            <Input
               type="password"
-              value={masterPassword}
-              onChange={(e) => setMasterPassword(e.target.value)}
-              placeholder={t('auth.masterPassword')}
+              value={dataEncryptionPasswordInput}
+              onChange={(e) => setDataEncryptionPasswordInput(e.target.value)}
+              placeholder={t('auth.dataPasswordPlaceholder', 'Data Encryption Password')}
               className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-right bg-background text-foreground"
-              onKeyPress={(e) => e.key === 'Enter' && handleUnlock()}
+              onKeyPress={(e) => e.key === 'Enter' && handleUnlockDataSubmit()}
             />
-
             <Button
-              onClick={handleUnlock}
+              onClick={handleUnlockDataSubmit}
               className="w-full premium-button"
-              disabled={!masterPassword}
+              disabled={!dataEncryptionPasswordInput}
             >
-              {t('auth.unlock')}
+              {t('auth.unlockDataButton', 'Unlock Data')}
             </Button>
-
             <div className="flex justify-between items-center pt-4 border-t border-border">
-              <Button
+               <Button
                 variant="outline"
-                onClick={() => setShowSecurity(true)}
+                onClick={() => openSecurityModal('change_data_password')}
                 className="text-sm"
               >
-                {t('auth.securitySettings')}
+                {t('auth.changeDataPassword', 'Change Data Password')}
               </Button>
-
               <Button
                 variant="destructive"
                 size="sm"
@@ -233,17 +431,16 @@ const Index = () => {
             </div>
           </div>
         </div>
-
-        {showSecurity && (
+        {showSecurityModal && (securityModalMode === 'change_data_password' || securityModalMode === 'unlock_data' || securityModalMode === 'set_initial_data_password') && (
           <SecurityModal
-            mode="set" // Указываем режим для установки нового пароля
-            onClose={() => setShowSecurity(false)}
+            mode={securityModalMode}
+            onClose={() => setShowSecurityModal(false)}
             onSuccess={() => {
+              setShowSecurityModal(false);
               toast({
-                title: t('auth.passwordSetTitle'),
-                description: t('auth.passwordSetDescription'),
+                title: t('auth.operationSuccessful', 'Operation Successful'),
               });
-              // setShowSecurity(false); // onClose уже это делает
+               if (securityModalMode === 'unlock_data') setDataEncryptionPasswordInput('');
             }}
           />
         )}
@@ -283,7 +480,6 @@ const Index = () => {
     <DashboardLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {activeTab === 'dashboard' && (
         <div className="space-y-8">
-          {/* Welcome Section */}
           <div className="text-center">
             <h1 className="text-4xl font-bold text-foreground mb-2">
               {t('dashboard.welcome')}
@@ -292,18 +488,15 @@ const Index = () => {
               {t('dashboard.subtitle')}
             </p>
           </div>
-
-          {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="premium-card">
               <CardContent className="p-6">
-                <div className="text-sm text-muted-foreground mb-2">Текущий баланс (Дисконт)</div>
+                <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.currentBalanceDiscount')}</div>
                 <div className="text-2xl font-bold text-foreground">
                   ₪{stats.currentBalance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
                 </div>
               </CardContent>
             </Card>
-
             <Card className="premium-card">
               <CardContent className="p-6">
                 <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.incomeForPeriod')}</div>
@@ -312,7 +505,6 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-
             <Card className="premium-card">
               <CardContent className="p-6">
                 <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.spentByTransactionDate')}</div>
@@ -321,7 +513,6 @@ const Index = () => {
                 </div>
               </CardContent>
             </Card>
-
             <Card className="premium-card">
               <CardContent className="p-6">
                 <div className="text-sm text-muted-foreground mb-2">{t('dashboard.stats.chargedByChargeDate')}</div>
@@ -331,8 +522,6 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Filters */}
           <TransactionFilters
             dateFilter={dateFilter}
             onDateFilterChange={setDateFilter}
@@ -348,10 +537,7 @@ const Index = () => {
             dateFilterType={dateFilterType}
             onDateFilterTypeChange={setDateFilterType}
           />
-
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Recent Transactions */}
             <div className="lg:col-span-2 space-y-6">
               <Card className="premium-card">
                 <CardHeader>
@@ -362,7 +548,6 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <DashboardTransactions
-                    // limit={8} // Removed limit to enable full pagination
                     searchText={searchText}
                     categoryFilter={categoryFilter}
                     dateFilter={dateFilter}
@@ -373,12 +558,8 @@ const Index = () => {
                 </CardContent>
               </Card>
             </div>
-
-            {/* Analytics Panel */}
             <div className="space-y-6">
               <AnalyticsPanel />
-
-              {/* Quick Stats Card */}
               <Card className="premium-card">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold">{t('dashboard.quickStats')}</CardTitle>
@@ -461,5 +642,4 @@ const Index = () => {
     </DashboardLayout>
   );
 };
-
 export default Index;

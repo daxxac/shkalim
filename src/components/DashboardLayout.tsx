@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
@@ -7,13 +6,13 @@ import { Button } from './ui/button';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
 import { 
-  BarChart3, 
-  Upload, 
-  Settings, 
-  RotateCcw, 
-  Download, 
+  BarChart3,
+  Upload,
+  Settings,
+  RotateCcw,
   Lock,
-  Calendar
+  Calendar,
+  LogIn as LogInIcon // Added for login button
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
@@ -29,23 +28,29 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onTabChange,
 }) => {
   const { t } = useTranslation();
-  const { lock } = useFinanceStore();
+  const { lockData, handleSupabaseLogout, isSupabaseAuthenticated } = useFinanceStore();
   const { theme } = useTheme(); // Added useTheme hook
 
-  const handleExportData = () => {
-    // TODO: Implement data export
-    console.log('Export data');
+  const handleAuthAction = async () => {
+    if (isSupabaseAuthenticated) {
+      lockData(); // Lock local data
+      await handleSupabaseLogout(); // Logout from Supabase
+    } else {
+      // If not authenticated, calling logout will ensure isSupabaseAuthenticated is false,
+      // which should lead to the login/signup screen on Index page.
+      await handleSupabaseLogout();
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/30">
       <header className="glass-effect border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <img 
-                src="logo.png" 
-                alt="SHKALIM Logo" 
+                src="logo.png"
+                alt={t('alt.logo')}
                 className="h-12 w-auto mr-3"
               />
               <div>
@@ -53,7 +58,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                   SHKALIM
                 </h1>
                 <p className="text-xs text-muted-foreground logo-sub">
-                  <img className="h-[20px] w-auto" src={theme === 'light' ? "/dark.webp" : "/light.webp"} alt="by daxxac" />
+                  <img className="h-[20px] w-auto" src={theme === 'light' ? "/dark.webp" : "/light.webp"} alt={t('alt.byDaxxac')} />
                 </p>
               </div>
             </div>
@@ -64,27 +69,18 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleExportData}
+                onClick={handleAuthAction}
                 className="premium-button"
               >
-                <Download className="h-4 w-4 mr-2" />
-                {t('navigation.exportData')}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={lock}
-                className="premium-button"
-              >
-                <Lock className="h-4 w-4 mr-2" />
-                {t('navigation.lockSystem')}
+                {isSupabaseAuthenticated ? <Lock className="h-4 w-4 mr-2" /> : <LogInIcon className="h-4 w-4 mr-2" />}
+                {isSupabaseAuthenticated ? t('navigation.lockSystem', 'Lock & Logout') : t('navigation.loginSignUp', 'Login / Sign Up')}
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 premium-card">
             <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -114,6 +110,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </TabsContent>
         </Tabs>
       </main>
+      <footer className="w-full border-t bg-background/80 text-xs text-muted-foreground py-4 text-center mt-8">
+        © {new Date().getFullYear()} Shkalim. All rights reserved.
+      </footer>
     </div>
   );
 };
+
+export default DashboardLayout;

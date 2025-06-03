@@ -1,4 +1,3 @@
-
 {
   "auth": {
     "welcome": "Добро пожаловать",
@@ -14,7 +13,44 @@
     "dataDeleted": "Данные удалены",
     "allDataDeleted": "Все данные были безвозвратно удалены",
     "passwordSetTitle": "Пароль установлен",
-    "passwordSetDescription": "Ваш пароль был успешно установлен."
+    "passwordSetDescription": "Ваш пароль был успешно установлен.",
+    "supabaseLoginPrompt": "Пожалуйста, войдите, чтобы продолжить",
+    "supabaseSignUpPrompt": "Создайте аккаунт, чтобы начать",
+    "emailLabel": "Электронная почта",
+    "emailPlaceholderLogin": "your@email.com",
+    "passwordLabel": "Пароль",
+    "passwordPlaceholderLogin": "Введите ваш пароль",
+    "loginButton": "Войти",
+    "switchToSignUp": "Нет аккаунта? Зарегистрироваться",
+    "emailPlaceholderSignup": "your@email.com",
+    "passwordPlaceholderSignup": "Создайте пароль (мин. 6 символов)",
+    "confirmPasswordLabel": "Подтвердите пароль",
+    "confirmPasswordPlaceholderSignup": "Подтвердите ваш пароль",
+    "signUpButton": "Зарегистрироваться",
+    "switchToLogin": "Уже есть аккаунт? Войти",
+    "initialDataSetupTitle": "Требуется начальная настройка данных",
+    "initialDataSetupPrompt": "Пожалуйста, установите пароль шифрования данных, чтобы продолжить.",
+    "setDataEncryptionPasswordButton": "Установить пароль шифрования данных",
+    "dataPasswordSetTitle": "Пароль шифрования данных установлен",
+    "dataNowSecure": "Ваши данные теперь зашифрованы и защищены.",
+    "enterDataPasswordPrompt": "Введите ваш пароль шифрования данных",
+    "dataPasswordPlaceholder": "Пароль шифрования данных",
+    "unlockDataButton": "Разблокировать данные",
+    "changeDataPassword": "Изменить пароль данных",
+    "operationSuccessful": "Операция успешно завершена",
+    "emptyDataPassword": "Пароль шифрования данных не может быть пустым.",
+    "dataUnlockedTitle": "Данные разблокированы",
+    "dataUnlockedSuccess": "Ваши данные были успешно расшифрованы.",
+    "emptyCredentials": "Электронная почта и пароль не могут быть пустыми.",
+    "loginSuccessTitle": "Вход выполнен успешно",
+    "welcomeBack": "С возвращением!",
+    "loginFailedError": "Ошибка входа. Пожалуйста, проверьте ваши учетные данные.",
+    "loginErrorTitle": "Ошибка входа",
+    "passwordMismatch": "Пароли не совпадают.",
+    "signupSuccessTitle": "Регистрация прошла успешно",
+    "signupSuccessDescription": "Пожалуйста, проверьте свою электронную почту для подтверждения учетной записи, если это необходимо, или попробуйте войти.",
+    "signupFailedError": "Ошибка регистрации. Пожалуйста, попробуйте еще раз.",
+    "signupErrorTitle": "Ошибка регистрации"
   },
   "navigation": {
     "dashboard": "Панель",
@@ -52,7 +88,8 @@
     "stats": {
       "incomeForPeriod": "Доходы за период",
       "spentByTransactionDate": "Расходы (по дате операции)",
-      "chargedByChargeDate": "Списания (по дате списания)"
+      "chargedByChargeDate": "Списания (по дате списания)",
+      "currentBalanceDiscount": "Текущий баланс (Дисконт)"
     }
   },
   "transactions": {
@@ -63,7 +100,8 @@
     "noTransactions": "Транзакций не найдено",
     "showing": "Показано",
     "of": "из",
-    "balance": "Баланс"
+    "balance": "Баланс",
+    "chargeDateInfo": "списание: {{date}}"
   },
   "categories": {
     "all": "Все категории",
@@ -78,23 +116,59 @@
     "uploadTitle": "Загрузка категорий",
     "uploadDescription": "Загрузите CSV файл с категориями",
     "dragDrop": "Перетащите файлы сюда или нажмите для выбора",
-    "csvFormat": "Формат CSV: название, цвет"
+    "csvFormat": "Формат CSV: название, цвет",
+    "uploadSuccess": "Категории загружены",
+    "uploadSuccessDesc": "Ваши категории были успешно импортированы.",
+    "uploadError": "Ошибка загрузки категорий",
+    "uploadErrorDesc": "Возникла проблема при импорте категорий. Пожалуйста, проверьте формат файла.",
+    "processing": "Обработка...",
+    "dropHere": "Отпустите файлы здесь",
+    "exampleFormatTitle": "Пример CSV формата для категорий:",
+    "exampleFormat": {
+      "header": "транзакция,категория",
+      "line1": "\"магнит\",{{categoryId}}",
+      "line2": "\"такси\",{{categoryId}}"
+    }
   },
   "upload": {
     "title": "Загрузка файлов",
     "dragDrop": "Перетащите файлы сюда или нажмите для выбора",
-    "supportedFormats": "Поддерживаемые форматы: CSV, XLS, XLSX",
+    "supportedFormats": {
+      "discountTransactions": "Дисконт - Транзакции (XLSX)",
+      "discountCredit": "Дисконт - Кредитка (XLSX)",
+      "maxPayments": "Макс - Платежи (XLSX)",
+      "xlsx": "XLSX"
+    },
     "selectBank": "Выберите банк",
     "processing": "Обработка...",
     "filesProcessed": "файл(-ов) обработано",
-    "success": "Файл успешно загружен",
-    "error": "Ошибка загрузки файла"
+    "success": "Файл(-ы) успешно загружен(-ы)",
+    "error": "Ошибка загрузки файла",
+    "filesNotProcessed": "файл(-ов) не удалось обработать",
+    "dropHere": "Отпустите файлы здесь",
+    "bankTypeLabel": "Тип банка",
+    "bankTypes": {
+      "auto": "Автоопределение",
+      "discountTransactions": "Дисконт - Транзакции по счету",
+      "discountCredit": "Дисконт - Списания по кредитке",
+      "maxShekel": "Макс - Платежи в шекелях",
+      "maxForeign": "Макс - Платежи в валютах",
+      "cal": "CAL"
+    },
+    "supportedFormatsTitle": "Поддерживаемые форматы:",
+    "supportedFormatsList": {
+      "discountTransactions": "Дисконт - Транзакции",
+      "discountCredit": "Дисконт - Кредитка",
+      "maxPayments": "Макс - Платежи"
+    }
   },
   "analytics": {
     "title": "Аналитика",
     "categoryBreakdown": "Разбивка по категориям",
     "monthlyTrend": "Месячная динамика",
-    "topExpenses": "Топ расходов"
+    "topExpenses": "Топ расходов",
+    "incomeByCategory": "Доходы по категориям",
+    "expensesByCategory": "Расходы по категориям"
   },
   "settings": {
     "title": "Настройки",
@@ -107,8 +181,10 @@
     "confirmReset": "Вы уверены, что хотите стереть данные безвозвратно?",
     "resetData": "Сбросить все данные",
     "resetDescription": "Это навсегда удалит все транзакции и настройки",
-    "resetSuccess": "Ваши данные были успешно удалены",
-    "currentData": "Текущие данные"
+    "resetSuccess": "Данные успешно сброшены",
+    "resetSuccessDesc": "Все ваши данные были успешно сброшены.",
+    "currentData": "Текущие данные",
+    "confirmReset": "Вы уверены, что хотите сбросить все данные? Это действие необратимо."
   },
   "security": {
     "title": "Настройки безопасности",
@@ -134,7 +210,10 @@
   },
   "autoSync": {
     "title": "Автоматическая синхронизация",
-    "description": "Эта функция будет доступна в следующих версиях"
+    "description": "Эта функция будет доступна в следующих версиях",
+    "temporarilyDisabled": "Автосинхронизация временно отключена",
+    "manualUploadFocus": "Мы сосредоточились на ручной загрузке файлов для лучшей совместимости и безопасности.",
+    "useUploadTab": "Используйте вкладку \"Загрузка\" для добавления транзакций"
   },
   "sharing": {
     "title": "Поделиться данными",
@@ -182,5 +261,128 @@
     "errorStoreLockedDescription": "Пожалуйста, разблокируйте ваше хранилище (введите мастер-пароль на главной странице), прежде чем импортировать новые данные.",
     "errorTitle": "Ошибка",
     "goHome": "На главную"
+  },
+  "export": {
+    "asPdf": "Экспорт в PDF",
+    "asExcel": "Экспорт в Excel",
+    "pdf": {
+      "title": "Финансовый отчет",
+      "filename": "financial_report.pdf",
+      "periodFromTo": "с {{start}} по {{end}}",
+      "periodFrom": "с {{start}}",
+      "periodTo": "по {{end}}"
+    },
+    "excel": {
+      "summarySheetName": "Сводка",
+      "transactionsSheetName": "Транзакции",
+      "filename": "financial_report.xlsx"
+    },
+    "stats": {
+      "totalIncome": "Всего доходов",
+      "totalExpenses": "Всего расходов",
+      "netBalance": "Чистый баланс",
+      "numTransactions": "Количество транзакций"
+    },
+    "table": {
+      "id": "ID",
+      "date": "Дата",
+      "chargeDate": "Дата списания",
+      "description": "Описание",
+      "amount": "Сумма",
+      "balance": "Баланс",
+      "category": "Категория",
+      "bank": "Банк",
+      "reference": "Референс",
+      "location": "Местоположение",
+      "type": "Тип"
+    },
+    "error": {
+      "pdf": "Не удалось создать PDF отчет.",
+      "excel": "Не удалось создать Excel отчет."
+    }
+  },
+  "alt": {
+    "logo": "Логотип SHKALIM",
+    "byDaxxac": "от daxxac"
+  },
+  "languageSwitcher": {
+    "en": "EN",
+    "ru": "RU",
+    "he": "HE"
+  },
+  "localSync": {
+    "toast": {
+      "serverRunningTitle": "Сервер запущен",
+      "serverRunningDescription": "Локальный сервер синхронизации работает.",
+      "serverNotFoundTitle": "Сервер не найден",
+      "serverNotFoundDescription": "Локальный сервер синхронизации не запущен."
+    },
+    "cardTitle": "Локальная синхронизация банков",
+    "cardDescription": "Безопасная синхронизация без передачи паролей на внешние серверы.",
+    "securityInfoAlert": "<strong>Безопасность:</strong> Все данные остаются на вашем компьютере. Пароли не передаются в интернет.",
+    "status": {
+      "heading": "Статус локального сервера:",
+      "running": "Запущен",
+      "stopped": "Остановлен",
+      "unknown": "Неизвестно"
+    },
+    "button": {
+      "checking": "Проверка...",
+      "check": "Проверить"
+    },
+    "setup": {
+      "heading": "Установка локального сервера:",
+      "step1_download": "Скачайте локальный сервер синхронизации",
+      "step2_extract": "Разархивируйте и запустите файл",
+      "step3_port": "Сервер будет работать на порту 3001",
+      "step4_confirm": "Нажмите \"Проверить\" для подтверждения"
+    },
+    "serverRunningSuccessAlert": "Сервер запущен! Теперь вы можете добавлять банковские счета для синхронизации."
+  },
+  "themeToggle": {
+    "toggleTheme": "Переключить тему"
+  },
+  "transactionFilters": {
+    "dateFilterType": {
+      "transaction": "Дата транзакции",
+      "charge": "Дата списания"
+    },
+    "startDate": {
+      "transactionLabel": "Дата транзакции с:",
+      "chargeLabel": "Дата списания с:"
+    },
+    "endDate": {
+      "transactionLabel": "Дата транзакции до:",
+      "chargeLabel": "Дата списания до:"
+    },
+    "datePlaceholder": "Выберите дату",
+    "clearDatesLabel": "Очистить",
+    "clearDatesButton": "Очистить даты"
+  },
+  "transactionTable": {
+    "noCategory": "Без категории",
+    "unknownCategory": "Неизвестная категория",
+    "title": "Последние транзакции",
+    "sort": {
+      "dateDesc": "Дата (новые > старые)",
+      "dateAsc": "Дата (старые > новые)",
+      "amountDesc": "Сумма (большие > маленькие)",
+      "amountAsc": "Сумма (маленькие > большие)"
+    },
+    "header": {
+      "date": "Дата",
+      "description": "Описание",
+      "amount": "Сумма",
+      "category": "Категория",
+      "bank": "Банк"
+    },
+    "noTransactionsFound": "Транзакции не найдены",
+    "showingInfo": "Показано {{start}}-{{end}} из {{total}} транзакций"
+  },
+  "notFound": {
+    "consoleError": "Ошибка 404: Пользователь пытался получить доступ к несуществующему маршруту:",
+    "title": "404",
+    "message": "Ой! Страница не найдена",
+    "returnHomeLink": "Вернуться на главную"
   }
 }

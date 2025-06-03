@@ -4,8 +4,11 @@ import { Moon, Sun } from 'lucide-react';
 import { Button } from './ui/button';
 import { useTheme } from '../hooks/useTheme';
 
+import { useTranslation } from 'react-i18next'; // Added import
+
 export const ThemeToggle: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation(); // Added t
 
   return (
     <Button
@@ -19,7 +22,7 @@ export const ThemeToggle: React.FC = () => {
       ) : (
         <Moon className="h-4 w-4" />
       )}
-      <span className="sr-only">Toggle theme</span>
+      <span className="sr-only">{t('themeToggle.toggleTheme')}</span>
     </Button>
   );
 };

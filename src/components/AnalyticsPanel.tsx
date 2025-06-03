@@ -57,24 +57,60 @@ export const AnalyticsPanel: React.FC = () => {
   const totalExpenses = expenseData.reduce((sum, item) => sum + item.value, 0);
   const totalIncome = incomeData.reduce((sum, item) => sum + item.value, 0);
 
-  const CustomTooltip = ({ active, payload, dataType }: any) => {
-    if (active && payload && payload.length > 0) {
-      const data = payload[0];
-      const total = dataType === 'expense' ? totalExpenses : totalIncome;
-      return (
-        <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-medium text-foreground">{data.payload.name}</p>
-          <p className="text-sm text-muted-foreground">
-            ₪{data.value.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {((data.value / total) * 100).toFixed(1)}%
-          </p>
-        </div>
-      );
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name?: string | number;
+    value?: string | number | (string | number)[];
+    payload?: { name?: string | number; }; // Made nested payload optional
+  }>;
+  label?: string | number;
+  dataType: 'income' | 'expense';
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, dataType }) => {
+  if (active && payload && payload.length > 0) {
+    const dataItem = payload[0];
+
+    if (dataItem.value === undefined) {
+      return null;
     }
-    return null;
-  };
+    
+    let rawValue = dataItem.value;
+    if (Array.isArray(rawValue)) {
+      rawValue = rawValue.length > 0 ? rawValue[0] : undefined;
+    }
+    
+    if (rawValue === undefined) {
+      return null;
+    }
+
+    const numericValue = typeof rawValue === 'string' ? parseFloat(rawValue) : (typeof rawValue === 'number' ? rawValue : NaN);
+
+    if (isNaN(numericValue)) {
+      return null;
+    }
+
+    const total = dataType === 'expense' ? totalExpenses : totalIncome;
+    
+    // Check if nested payload and its name exist
+    const rawName = dataItem.payload?.name;
+    const displayName = rawName !== undefined ? (typeof rawName === 'number' ? String(rawName) : rawName) : 'N/A';
+    
+    return (
+      <div className="bg-background border border-border rounded-lg p-3 shadow-lg">
+        <p className="font-medium text-foreground">{displayName}</p>
+        <p className="text-sm text-muted-foreground">
+          ₪{numericValue.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {total > 0 ? ((numericValue / total) * 100).toFixed(1) + '%' : 'N/A'}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
   return (
     <div className="space-y-6">
@@ -82,7 +118,7 @@ export const AnalyticsPanel: React.FC = () => {
       {incomeData.length > 0 && (
         <div className="premium-card p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">
-            Доходы по категориям
+            {t('analytics.incomeByCategory')}
           </h3>
           
           <div className="h-64 mb-4">
@@ -139,7 +175,7 @@ export const AnalyticsPanel: React.FC = () => {
       {expenseData.length > 0 && (
         <div className="premium-card p-6">
           <h3 className="text-lg font-semibold text-foreground mb-4">
-            Расходы по категориям
+            {t('analytics.expensesByCategory')}
           </h3>
           
           <div className="h-64 mb-4">

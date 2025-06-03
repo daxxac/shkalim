@@ -134,7 +134,7 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({
                       {new Date(transaction.date).toLocaleDateString()}
                       {transaction.chargeDate && transaction.chargeDate !== transaction.date && (
                         <span className="ml-2 text-orange-600">
-                          (списание: {new Date(transaction.chargeDate).toLocaleDateString()})
+                          ({t('transactions.chargeDateInfo', { date: new Date(transaction.chargeDate).toLocaleDateString() })})
                         </span>
                       )}
                     </div>

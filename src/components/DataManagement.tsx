@@ -5,15 +5,15 @@ import { useDropzone } from 'react-dropzone';
 import { useFinanceStore } from '../store/financeStore';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Input } from './ui/input'; // Added Input
-import { AlertTriangle, Upload, FileText, Trash2, Share2, Copy, Check } from 'lucide-react'; // Added Share2, Copy, Check
+import { Input } from './ui/input';
+import { AlertTriangle, Upload, FileText, Trash2, Share2, Copy, Check, Lock } from 'lucide-react'; // Added Lock
 import { toast } from '../hooks/use-toast';
-import { sharingService } from '../services/sharingService'; // Import sharing service
+import { sharingService } from '../services/sharingService';
 
 export const DataManagement: React.FC = () => {
   const { t } = useTranslation();
-  const { resetAllData, uploadCategoriesCSV, transactions } = useFinanceStore();
-  const [uploadingCategories, setUploadingCategories] = useState(false); // Renamed for clarity
+  const { resetAllData, uploadCategoriesCSV, transactions, isSupabaseAuthenticated } = useFinanceStore(); // Added isSupabaseAuthenticated
+  const [uploadingCategories, setUploadingCategories] = useState(false);
 
   // States for data sharing
   const [isCreatingLink, setIsCreatingLink] = useState(false);
@@ -157,9 +157,9 @@ export const DataManagement: React.FC = () => {
           <div className="bg-muted p-3 rounded-lg">
             <p className="text-sm font-medium mb-1">{t('categories.exampleFormat')}</p>
             <code className="text-xs bg-background p-2 rounded block">
-              транзакция,категория<br/>
-              "магнит","food"<br/>
-              "такси","transport"
+              {t('categories.exampleFormat.header')}<br/>
+              {t('categories.exampleFormat.line1', { categoryId: '"food"'})}<br/>
+              {t('categories.exampleFormat.line2', { categoryId: '"transport"'})}
             </code>
           </div>
         </CardContent>
@@ -169,85 +169,101 @@ export const DataManagement: React.FC = () => {
       <Card className="premium-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Share2 className="h-5 w-5" />
+            {isSupabaseAuthenticated ? <Share2 className="h-5 w-5" /> : <Lock className="h-5 w-5 text-muted-foreground" />}
             {t('sharing.title')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {t('sharing.description')}
-          </p>
-          
-          {!generatedShareLink ? (
-            <>
-              <div>
-                <label htmlFor="tempPasswordShare" className="block text-sm font-medium mb-1">
-                  {t('sharing.temporaryPasswordLabel')}
-                </label>
-                <Input
-                  id="tempPasswordShare"
-                  type="password"
-                  value={shareTemporaryPassword}
-                  onChange={(e) => {
-                    setShareTemporaryPassword(e.target.value);
-                    if (shareError) setShareError(null); // Clear error on input change
-                  }}
-                  placeholder={t('sharing.temporaryPasswordPlaceholder')}
-                  minLength={8}
-                  disabled={isCreatingLink}
-                  className="bg-background"
-                />
-                <p className="text-xs text-muted-foreground mt-1">{t('sharing.temporaryPasswordHint')}</p>
-              </div>
-
-              {shareError && (
-                <p className="text-sm text-red-600 dark:text-red-400">{shareError}</p>
-              )}
-
-              <Button
-                onClick={handleCreateShareLink}
-                disabled={isCreatingLink || !shareTemporaryPassword || shareTemporaryPassword.length < 8}
-                className="w-full"
-              >
-                {isCreatingLink ? t('sharing.creatingLink') : t('sharing.createLinkButton')}
-              </Button>
-            </>
-          ) : (
-            <div className="space-y-3 p-4 border border-dashed rounded-lg bg-muted/50">
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium">{t('sharing.linkReady')}</p>
-              
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">{t('sharing.shareThisLink')}</label>
-                <div className="flex items-center gap-2">
-                  <Input type="text" value={generatedShareLink} readOnly className="bg-background" />
-                  <Button variant="outline" size="icon" onClick={() => copyToClipboard(generatedShareLink, 'link')} aria-label={t('sharing.copyLinkAriaLabel', { link: generatedShareLink })}> {/* Add ARIA label */}
-                    {copiedLink ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">{t('sharing.shareThisPassword')}</label>
-                <div className="flex items-center gap-2">
-                  <Input type="text" value={shareTemporaryPassword} readOnly className="bg-background" />
-                   <Button variant="outline" size="icon" onClick={() => copyToClipboard(shareTemporaryPassword, 'password')} aria-label={t('sharing.copyPasswordAriaLabel')}> {/* Add ARIA label */}
-                    {copiedPassword ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </div>
-              
-              <p className="text-xs text-muted-foreground">{t('sharing.linkExpires')}</p>
-              
-              <Button variant="outline" onClick={() => {
-                setGeneratedShareLink(null);
-                setShareTemporaryPassword('');
-                setCopiedLink(false);
-                setCopiedPassword(false);
-                setShareError(null); // Clear any previous errors
-              }} className="w-full mt-2">
-                {t('sharing.createAnotherLink')}
-              </Button>
+          {!isSupabaseAuthenticated ? (
+            <div className="text-center p-4 border border-dashed rounded-lg bg-muted/50">
+              <Lock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm font-medium text-muted-foreground">
+                {t('sharing.authRequiredTitle', 'Login Required')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {t('sharing.authRequiredDescription', 'Please log in or sign up to share your data.')}
+              </p>
+              {/* Optionally, add a button here to navigate to login/signup if you have a separate auth page */}
+              {/* <Button size="sm" className="mt-3" onClick={() => { /* navigate to login * / }}>{t('sharing.loginButton', 'Login / Sign Up')}</Button> */}
             </div>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                {t('sharing.description')}
+              </p>
+              
+              {!generatedShareLink ? (
+                <>
+                  <div>
+                    <label htmlFor="tempPasswordShare" className="block text-sm font-medium mb-1">
+                      {t('sharing.temporaryPasswordLabel')}
+                    </label>
+                    <Input
+                      id="tempPasswordShare"
+                      type="password"
+                      value={shareTemporaryPassword}
+                      onChange={(e) => {
+                        setShareTemporaryPassword(e.target.value);
+                        if (shareError) setShareError(null); // Clear error on input change
+                      }}
+                      placeholder={t('sharing.temporaryPasswordPlaceholder')}
+                      minLength={8}
+                      disabled={isCreatingLink}
+                      className="bg-background"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">{t('sharing.temporaryPasswordHint')}</p>
+                  </div>
+
+                  {shareError && (
+                    <p className="text-sm text-red-600 dark:text-red-400">{shareError}</p>
+                  )}
+
+                  <Button
+                    onClick={handleCreateShareLink}
+                    disabled={isCreatingLink || !shareTemporaryPassword || shareTemporaryPassword.length < 8}
+                    className="w-full"
+                  >
+                    {isCreatingLink ? t('sharing.creatingLink') : t('sharing.createLinkButton')}
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-3 p-4 border border-dashed rounded-lg bg-muted/50">
+                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">{t('sharing.linkReady')}</p>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">{t('sharing.shareThisLink')}</label>
+                    <div className="flex items-center gap-2">
+                      <Input type="text" value={generatedShareLink} readOnly className="bg-background" />
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(generatedShareLink, 'link')} aria-label={t('sharing.copyLinkAriaLabel', { link: generatedShareLink })}>
+                        {copiedLink ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">{t('sharing.shareThisPassword')}</label>
+                    <div className="flex items-center gap-2">
+                      <Input type="text" value={shareTemporaryPassword} readOnly className="bg-background" />
+                       <Button variant="outline" size="icon" onClick={() => copyToClipboard(shareTemporaryPassword, 'password')} aria-label={t('sharing.copyPasswordAriaLabel')}>
+                        {copiedPassword ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">{t('sharing.linkExpires')}</p>
+                  
+                  <Button variant="outline" onClick={() => {
+                    setGeneratedShareLink(null);
+                    setShareTemporaryPassword('');
+                    setCopiedLink(false);
+                    setCopiedPassword(false);
+                    setShareError(null);
+                  }} className="w-full mt-2">
+                    {t('sharing.createAnotherLink')}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

@@ -16,8 +16,8 @@ const ShareImportPage: React.FC = () => {
 
   const {
     importSharedData, // Use the new action
-    isLocked: isStoreLocked,
-    masterPasswordHash
+    isDataLocked: isStoreDataLocked, // Changed from isLocked
+    encryptedDataBlob // Added to check if data exists
   } = useFinanceStore.getState();
 
   const [temporaryPassword, setTemporaryPassword] = useState('');
@@ -57,8 +57,10 @@ const ShareImportPage: React.FC = () => {
   const handleImportData = async () => {
     if (!fetchedData) return;
 
-    if (isStoreLocked && masterPasswordHash) {
-        toast({ title: t('sharingImport.errorStoreLockedTitle'), description: t('sharingImport.errorStoreLockedDescription'), variant: 'destructive' }); // Add translations
+    // If data is locked AND there's an encrypted blob, it means user needs to unlock their existing data first.
+    // If data is locked but no blob, it's initial state, safe to import.
+    if (isStoreDataLocked && encryptedDataBlob) {
+        toast({ title: t('sharingImport.errorStoreLockedTitle', 'Store Locked'), description: t('sharingImport.errorStoreLockedDescription', 'Please unlock your current data before importing new data.'), variant: 'destructive' });
         return;
     }
 

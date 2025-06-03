@@ -20,8 +20,8 @@ export const LocalSyncSetup: React.FC = () => {
       if (response.ok) {
         setServerStatus('running');
         toast({
-          title: 'Сервер запущен',
-          description: 'Локальный сервер синхронизации работает'
+          title: t('localSync.toast.serverRunningTitle'),
+          description: t('localSync.toast.serverRunningDescription')
         });
       } else {
         setServerStatus('stopped');
@@ -29,8 +29,8 @@ export const LocalSyncSetup: React.FC = () => {
     } catch (error) {
       setServerStatus('stopped');
       toast({
-        title: 'Сервер не найден',
-        description: 'Локальный сервер синхронизации не запущен',
+        title: t('localSync.toast.serverNotFoundTitle'),
+        description: t('localSync.toast.serverNotFoundDescription'),
         variant: 'destructive'
       });
     } finally {
@@ -49,56 +49,53 @@ export const LocalSyncSetup: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-green-600" />
-            Локальная синхронизация банков
+            {t('localSync.cardTitle')}
           </CardTitle>
           <CardDescription>
-            Безопасная синхронизация без передачи паролей на внешние серверы
+            {t('localSync.cardDescription')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <Shield className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Безопасность:</strong> Все данные остаются на вашем компьютере. 
-              Пароли не передаются в интернет.
-            </AlertDescription>
+            <AlertDescription dangerouslySetInnerHTML={{ __html: t('localSync.securityInfoAlert') }} />
           </Alert>
 
           <div className="space-y-3">
-            <h4 className="font-medium">Статус локального сервера:</h4>
+            <h4 className="font-medium">{t('localSync.status.heading')}</h4>
             <div className="flex items-center gap-3">
               <Badge variant={serverStatus === 'running' ? 'default' : 'destructive'}>
                 {serverStatus === 'running' && <CheckCircle className="h-3 w-3 mr-1" />}
                 {serverStatus === 'stopped' && <AlertTriangle className="h-3 w-3 mr-1" />}
                 {serverStatus === 'unknown' && <Server className="h-3 w-3 mr-1" />}
-                {serverStatus === 'running' ? 'Запущен' : 
-                 serverStatus === 'stopped' ? 'Остановлен' : 'Неизвестно'}
+                {serverStatus === 'running' ? t('localSync.status.running') :
+                 serverStatus === 'stopped' ? t('localSync.status.stopped') : t('localSync.status.unknown')}
               </Badge>
               
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={checkServerStatus}
                 disabled={isChecking}
               >
-                {isChecking ? 'Проверка...' : 'Проверить'}
+                {isChecking ? t('localSync.button.checking') : t('localSync.button.check')}
               </Button>
             </div>
           </div>
 
           {serverStatus !== 'running' && (
             <div className="space-y-4 p-4 bg-muted rounded-lg">
-              <h4 className="font-medium">Установка локального сервера:</h4>
+              <h4 className="font-medium">{t('localSync.setup.heading')}</h4>
               <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                <li>Скачайте локальный сервер синхронизации</li>
-                <li>Разархивируйте и запустите файл</li>
-                <li>Сервер будет работать на порту 3001</li>
-                <li>Нажмите "Проверить" для подтверждения</li>
+                <li>{t('localSync.setup.step1_download')}</li>
+                <li>{t('localSync.setup.step2_extract')}</li>
+                <li>{t('localSync.setup.step3_port')}</li>
+                <li>{t('localSync.setup.step4_confirm')}</li>
               </ol>
               
               <Button onClick={downloadSyncServer} className="w-full">
                 <Download className="h-4 w-4 mr-2" />
-                Скачать сервер синхронизации
+                {t('localSync.setup.step1_download')}
                 <ExternalLink className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -108,7 +105,7 @@ export const LocalSyncSetup: React.FC = () => {
             <Alert>
               <CheckCircle className="h-4 w-4" />
               <AlertDescription>
-                Сервер запущен! Теперь вы можете добавлять банковские счета для синхронизации.
+                {t('localSync.serverRunningSuccessAlert')}
               </AlertDescription>
             </Alert>
           )}

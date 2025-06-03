@@ -1,4 +1,3 @@
-
 {
   "auth": {
     "welcome": "Welcome",
@@ -14,7 +13,44 @@
     "dataDeleted": "Data deleted",
     "allDataDeleted": "All data has been permanently deleted",
     "passwordSetTitle": "Password Set",
-    "passwordSetDescription": "Your password has been successfully set."
+    "passwordSetDescription": "Your password has been successfully set.",
+    "supabaseLoginPrompt": "Please log in to continue",
+    "supabaseSignUpPrompt": "Create an account to get started",
+    "emailLabel": "Email",
+    "emailPlaceholderLogin": "your@email.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholderLogin": "Enter your password",
+    "loginButton": "Log In",
+    "switchToSignUp": "Don't have an account? Sign Up",
+    "emailPlaceholderSignup": "your@email.com",
+    "passwordPlaceholderSignup": "Create a password (min. 6 characters)",
+    "confirmPasswordLabel": "Confirm Password",
+    "confirmPasswordPlaceholderSignup": "Confirm your password",
+    "signUpButton": "Sign Up",
+    "switchToLogin": "Already have an account? Log In",
+    "initialDataSetupTitle": "Initial Data Setup Required",
+    "initialDataSetupPrompt": "Please set your data encryption password to proceed.",
+    "setDataEncryptionPasswordButton": "Set Data Encryption Password",
+    "dataPasswordSetTitle": "Data Encryption Password Set",
+    "dataNowSecure": "Your data is now encrypted and secured.",
+    "enterDataPasswordPrompt": "Enter your Data Encryption Password",
+    "dataPasswordPlaceholder": "Data Encryption Password",
+    "unlockDataButton": "Unlock Data",
+    "changeDataPassword": "Change Data Password",
+    "operationSuccessful": "Operation Successful",
+    "emptyDataPassword": "Data encryption password cannot be empty.",
+    "dataUnlockedTitle": "Data Unlocked",
+    "dataUnlockedSuccess": "Your data has been successfully decrypted.",
+    "emptyCredentials": "Email and password cannot be empty.",
+    "loginSuccessTitle": "Login Successful",
+    "welcomeBack": "Welcome back!",
+    "loginFailedError": "Login failed. Please check your credentials.",
+    "loginErrorTitle": "Login Failed",
+    "passwordMismatch": "Passwords do not match.",
+    "signupSuccessTitle": "Sign Up Successful",
+    "signupSuccessDescription": "Please check your email to confirm your account if required, or try logging in.",
+    "signupFailedError": "Sign up failed. Please try again.",
+    "signupErrorTitle": "Sign Up Failed"
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -48,7 +84,13 @@
     "quickStats": "Quick Stats",
     "positive": "Positive",
     "negative": "Negative",
-    "allTime": "All time"
+    "allTime": "All time",
+    "stats": {
+      "incomeForPeriod": "Income for period",
+      "spentByTransactionDate": "Expenses (by transaction date)",
+      "chargedByChargeDate": "Charges (by charge date)",
+      "currentBalanceDiscount": "Current Balance (Discount)"
+    }
   },
   "transactions": {
     "recentTransactions": "Recent Transactions",
@@ -58,7 +100,8 @@
     "noTransactions": "No transactions found",
     "showing": "Showing",
     "of": "of",
-    "balance": "Balance"
+    "balance": "Balance",
+    "chargeDateInfo": "charge: {{date}}"
   },
   "categories": {
     "all": "All categories",
@@ -73,22 +116,59 @@
     "uploadTitle": "Upload Categories",
     "uploadDescription": "Upload a CSV file with categories",
     "dragDrop": "Drag files here or click to select",
-    "csvFormat": "CSV format: name, color"
+    "csvFormat": "CSV format: name, color",
+    "uploadSuccess": "Categories Uploaded",
+    "uploadSuccessDesc": "Your categories have been successfully imported.",
+    "uploadError": "Category Upload Error",
+    "uploadErrorDesc": "There was an issue importing your categories. Please check the file format.",
+    "processing": "Processing...",
+    "dropHere": "Drop files here",
+    "exampleFormatTitle": "Example CSV Format for Categories:",
+    "exampleFormat": {
+      "header": "transaction,category",
+      "line1": "\"groceries\",{{categoryId}}",
+      "line2": "\"taxi ride\",{{categoryId}}"
+    }
   },
   "upload": {
     "title": "File Upload",
     "dragDrop": "Drag files here or click to select",
-    "supportedFormats": "Supported formats: CSV, XLS, XLSX",
+    "supportedFormats": {
+      "discountTransactions": "Discount - Transactions (XLSX)",
+      "discountCredit": "Discount - Credit Card (XLSX)",
+      "maxPayments": "Max - Payments (XLSX)",
+      "xlsx": "XLSX"
+    },
     "selectBank": "Select bank",
     "processing": "Processing...",
-    "success": "File uploaded successfully",
-    "error": "File upload error"
+    "success": "File(s) Uploaded Successfully",
+    "error": "File Upload Error",
+    "filesProcessed": "file(s) processed",
+    "filesNotProcessed": "file(s) could not be processed",
+    "dropHere": "Drop files here",
+    "bankTypeLabel": "Bank Type",
+    "bankTypes": {
+      "auto": "Auto-detect",
+      "discountTransactions": "Discount - Account Transactions",
+      "discountCredit": "Discount - Credit Card Charges",
+      "maxShekel": "Max - Payments in Shekels",
+      "maxForeign": "Max - Payments in Foreign Currency",
+      "cal": "CAL"
+    },
+    "supportedFormatsTitle": "Supported Formats:",
+    "supportedFormatsList": {
+      "discountTransactions": "Discount - Transactions",
+      "discountCredit": "Discount - Credit Card",
+      "maxPayments": "Max - Payments"
+    }
   },
   "analytics": {
     "title": "Analytics",
     "categoryBreakdown": "Category Breakdown",
     "monthlyTrend": "Monthly Trend",
-    "topExpenses": "Top Expenses"
+    "topExpenses": "Top Expenses",
+    "incomeByCategory": "Income by Category",
+    "expensesByCategory": "Expenses by Category"
   },
   "settings": {
     "title": "Settings",
@@ -99,7 +179,10 @@
     "dangerZone": "Danger Zone",
     "resetData": "Reset All Data",
     "resetDescription": "This will permanently delete all transactions and settings",
-    "currentData": "Current data"
+    "currentData": "Current data",
+    "confirmReset": "Are you sure you want to reset all data? This action cannot be undone.",
+    "resetSuccess": "Data Reset Successful",
+    "resetSuccessDesc": "All your data has been successfully reset."
   },
   "security": {
     "title": "Security Settings",
@@ -125,7 +208,10 @@
   },
   "autoSync": {
     "title": "Auto Sync",
-    "description": "This feature will be available in future versions"
+    "description": "This feature will be available in future versions",
+    "temporarilyDisabled": "Auto-sync temporarily disabled",
+    "manualUploadFocus": "We've focused on manual file upload for better compatibility and security.",
+    "useUploadTab": "Use the \"Upload\" tab to add transactions"
   },
   "sharing": {
     "title": "Share Data",
@@ -173,5 +259,128 @@
     "errorStoreLockedDescription": "Please unlock your store (enter master password on the main page) before importing new data.",
     "errorTitle": "Error",
     "goHome": "Go to Dashboard"
+  },
+  "export": {
+    "asPdf": "Export as PDF",
+    "asExcel": "Export as Excel",
+    "pdf": {
+      "title": "Financial Report",
+      "filename": "financial_report.pdf",
+      "periodFromTo": "from {{start}} to {{end}}",
+      "periodFrom": "from {{start}}",
+      "periodTo": "to {{end}}"
+    },
+    "excel": {
+      "summarySheetName": "Summary",
+      "transactionsSheetName": "Transactions",
+      "filename": "financial_report.xlsx"
+    },
+    "stats": {
+      "totalIncome": "Total Income",
+      "totalExpenses": "Total Expenses",
+      "netBalance": "Net Balance",
+      "numTransactions": "Number of Transactions"
+    },
+    "table": {
+      "id": "ID",
+      "date": "Date",
+      "chargeDate": "Charge Date",
+      "description": "Description",
+      "amount": "Amount",
+      "balance": "Balance",
+      "category": "Category",
+      "bank": "Bank",
+      "reference": "Reference",
+      "location": "Location",
+      "type": "Type"
+    },
+    "error": {
+      "pdf": "Failed to generate PDF report.",
+      "excel": "Failed to generate Excel report."
+    }
+  },
+  "alt": {
+    "logo": "SHKALIM Logo",
+    "byDaxxac": "by daxxac"
+  },
+  "languageSwitcher": {
+    "en": "EN",
+    "ru": "RU",
+    "he": "HE"
+  },
+  "localSync": {
+    "toast": {
+      "serverRunningTitle": "Server Running",
+      "serverRunningDescription": "Local sync server is operational.",
+      "serverNotFoundTitle": "Server Not Found",
+      "serverNotFoundDescription": "Local sync server is not running."
+    },
+    "cardTitle": "Local Bank Synchronization",
+    "cardDescription": "Secure synchronization without sending passwords to external servers.",
+    "securityInfoAlert": "<strong>Security:</strong> All data remains on your computer. Passwords are not transmitted over the internet.",
+    "status": {
+      "heading": "Local Server Status:",
+      "running": "Running",
+      "stopped": "Stopped",
+      "unknown": "Unknown"
+    },
+    "button": {
+      "checking": "Checking...",
+      "check": "Check Status"
+    },
+    "setup": {
+      "heading": "Local Server Setup:",
+      "step1_download": "Download the local sync server",
+      "step2_extract": "Unzip and run the executable file",
+      "step3_port": "The server will run on port 3001",
+      "step4_confirm": "Click \"Check Status\" to confirm"
+    },
+    "serverRunningSuccessAlert": "Server is running! You can now add bank accounts for synchronization."
+  },
+  "themeToggle": {
+    "toggleTheme": "Toggle theme"
+  },
+  "transactionFilters": {
+    "dateFilterType": {
+      "transaction": "Transaction Date",
+      "charge": "Charge Date"
+    },
+    "startDate": {
+      "transactionLabel": "Transaction date from:",
+      "chargeLabel": "Charge date from:"
+    },
+    "endDate": {
+      "transactionLabel": "Transaction date to:",
+      "chargeLabel": "Charge date to:"
+    },
+    "datePlaceholder": "Select date",
+    "clearDatesLabel": "Clear",
+    "clearDatesButton": "Clear Dates"
+  },
+  "transactionTable": {
+    "noCategory": "No Category",
+    "unknownCategory": "Unknown Category",
+    "title": "Recent Transactions",
+    "sort": {
+      "dateDesc": "Date (Newest to Oldest)",
+      "dateAsc": "Date (Oldest to Newest)",
+      "amountDesc": "Amount (High to Low)",
+      "amountAsc": "Amount (Low to High)"
+    },
+    "header": {
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount",
+      "category": "Category",
+      "bank": "Bank"
+    },
+    "noTransactionsFound": "No transactions found",
+    "showingInfo": "Showing {{start}}-{{end}} of {{total}} transactions"
+  },
+  "notFound": {
+    "consoleError": "404 Error: User attempted to access non-existent route:",
+    "title": "404",
+    "message": "Oops! Page not found",
+    "returnHomeLink": "Return to Home"
   }
 }

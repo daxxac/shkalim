@@ -21,28 +21,45 @@ class SharingService {
    * @returns The unique share ID for the link.
    */
   async createShareLink(temporaryPassword: string, expiresInHours?: number): Promise<string> {
-    const { transactions, categories, upcomingCharges, _currentPasswordInMemory, masterPasswordHash, isLocked } = useFinanceStore.getState();
+    const {
+      transactions,
+      categories,
+      upcomingCharges,
+      _currentPasswordInMemory, // This is the data encryption key, if data is unlocked
+      isDataLocked,           // Replaces isLocked
+      encryptedDataBlob,     // To check if any data was ever encrypted
+      isSupabaseAuthenticated // Added to check auth status
+    } = useFinanceStore.getState();
 
-    if (isLocked && !masterPasswordHash) {
-        // Если заблокировано и нет мастер-пароля, значит, это первый запуск без установки пароля.
-        // Данные по умолчанию, их можно "делиться" без расшифровки.
-    } else if (isLocked) {
-        throw new Error("Cannot share data when the store is locked and a master password is set. Please unlock first.");
+    if (!isSupabaseAuthenticated) {
+      throw new Error("User must be authenticated to create share links.");
     }
     
     let dataToShare: ShareableData;
 
-    if (masterPasswordHash && _currentPasswordInMemory) {
-      // Если есть мастер-пароль, данные в состоянии уже расшифрованы им.
-      // Мы просто берем их.
-       dataToShare = {
-        transactions,
-        categories,
-        upcomingCharges,
-      };
+    if (isDataLocked) {
+      if (!encryptedDataBlob) {
+        // Data is "locked" but no encrypted blob exists. This means it's the initial state
+        // before any data encryption password was set. We can share the current (default/empty) data.
+        console.warn("Sharing data from a locked store with no encrypted blob (initial state).");
+        dataToShare = {
+          transactions, // Should be default/empty
+          categories,   // Should be default
+          upcomingCharges, // Should be default/empty
+        };
+      } else {
+        // Data is locked and an encrypted blob exists. We don't have the key in memory.
+        throw new Error("Cannot share data when it is locked. Please unlock your data first.");
+      }
     } else {
-      // Нет мастер-пароля (или он не использовался для текущих данных в памяти)
-      // Просто берем текущие данные из состояния
+      // Data is not locked, meaning _currentPasswordInMemory is set and store data is decrypted.
+      // We can use the current live data from the store.
+      if (!_currentPasswordInMemory) {
+        // This case should ideally not happen if isDataLocked is false.
+        // Adding a safeguard.
+        console.error("Data is not locked, but no current password in memory. This is an inconsistent state.");
+        throw new Error("Inconsistent state: Data unlocked but no encryption key found. Cannot share.");
+      }
       dataToShare = {
         transactions,
         categories,

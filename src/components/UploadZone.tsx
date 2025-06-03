@@ -67,19 +67,19 @@ export const UploadZone: React.FC = () => {
       {/* Bank Type Selection */}
       <div className="mb-4">
         <label className="block text-sm font-medium text-foreground mb-2">
-          Тип банка
+          {t('upload.bankTypeLabel')}
         </label>
         <Select value={selectedBankType} onValueChange={setSelectedBankType}>
           <SelectTrigger className="w-full">
-            <SelectValue />
+            <SelectValue placeholder={t('upload.bankTypes.auto')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="auto">Автоопределение</SelectItem>
-            <SelectItem value="discount-transactions">Дисконт - Транзакции по счету</SelectItem>
-            <SelectItem value="discount-credit">Дисконт - Списания по кредитке</SelectItem>
-            <SelectItem value="max-shekel">Макс - Платежи в шекелях</SelectItem>
-            <SelectItem value="max-foreign">Макс - Платежи в валютах</SelectItem>
-            <SelectItem value="cal">CAL</SelectItem>
+            <SelectItem value="auto">{t('upload.bankTypes.auto')}</SelectItem>
+            <SelectItem value="discount-transactions">{t('upload.bankTypes.discountTransactions')}</SelectItem>
+            <SelectItem value="discount-credit">{t('upload.bankTypes.discountCredit')}</SelectItem>
+            <SelectItem value="max-shekel">{t('upload.bankTypes.maxShekel')}</SelectItem>
+            <SelectItem value="max-foreign">{t('upload.bankTypes.maxForeign')}</SelectItem>
+            <SelectItem value="cal">{t('upload.bankTypes.cal')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -105,7 +105,7 @@ export const UploadZone: React.FC = () => {
               <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
               <div>
                 <p className="text-lg font-medium text-foreground">
-                  {isDragActive ? t('upload.dropHere') : t('upload.dragDrop')}
+                  {isDragActive ? t('upload.dropHere', 'Drop files here') : t('upload.dragDrop')}
                 </p>
                 <p className="text-muted-foreground mt-1">
                   {t('upload.supportedFormats')}
@@ -119,17 +119,17 @@ export const UploadZone: React.FC = () => {
       {/* Supported formats */}
       <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
         <SupportedFormat
-          bank="Дисконт - Транзакции"
+          bank={t('upload.supportedFormats.discountTransactions')}
           format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank="Дисконт - Кредитка"
+          bank={t('upload.supportedFormats.discountCredit')}
           format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />
         <SupportedFormat
-          bank="Макс - Платежи"
+          bank={t('upload.supportedFormats.maxPayments')}
           format="XLSX"
           icon={<FileText className="h-4 w-4" />}
         />

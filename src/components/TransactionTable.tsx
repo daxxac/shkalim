@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next'; // Added
 import { useFinanceStore } from '../store/financeStore';
 import { TransactionFilters } from './TransactionFilters';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from './ui/pagination';
@@ -12,6 +13,7 @@ interface DateFilter {
 const ITEMS_PER_PAGE = 50;
 
 export const TransactionTable: React.FC = () => {
+  const { t } = useTranslation(); // Added
   const { transactions, categories, updateTransactionCategory } = useFinanceStore();
   const [searchText, setSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
@@ -91,13 +93,17 @@ export const TransactionTable: React.FC = () => {
   }, [searchText, categoryFilter, dateFilter, sortBy, sortOrder, incomeFilter, expenseFilter]);
 
   const getCategoryName = (categoryId?: string) => {
-    if (!categoryId) return 'ללא קטגוריה';
+    if (!categoryId) return t('transactionTable.noCategory');
     const category = categories.find(c => c.id === categoryId);
     if (category) {
-      // Remove kebab-case and capitalize
+      // If translation exists for category.id, use it, otherwise format name
+      const translatedName = t(`categories.${category.id}`);
+      if (translatedName !== `categories.${category.id}`) {
+        return translatedName;
+      }
       return category.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
     }
-    return 'לא ידוע';
+    return t('transactionTable.unknownCategory');
   };
 
   const getCategoryColor = (categoryId?: string) => {
@@ -109,7 +115,7 @@ export const TransactionTable: React.FC = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200">
       <div className="p-6 border-b border-gray-200">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">עסקאות אחרונות</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('transactionTable.title')}</h2>
           
           <div className="flex flex-col sm:flex-row gap-2">
             {/* Sort */}
@@ -122,10 +128,10 @@ export const TransactionTable: React.FC = () => {
               }}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="date-desc">תאריך (חדש לישן)</option>
-              <option value="date-asc">תאריך (ישן לחדש)</option>
-              <option value="amount-desc">סכום (גבוה לנמוך)</option>
-              <option value="amount-asc">סכום (נמוך לגבוה)</option>
+              <option value="date-desc">{t('transactionTable.sort.dateDesc')}</option>
+              <option value="date-asc">{t('transactionTable.sort.dateAsc')}</option>
+              <option value="amount-desc">{t('transactionTable.sort.amountDesc')}</option>
+              <option value="amount-asc">{t('transactionTable.sort.amountAsc')}</option>
             </select>
           </div>
         </div>
@@ -151,19 +157,19 @@ export const TransactionTable: React.FC = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                תאריך
+                {t('transactionTable.header.date')}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                תיאור
+                {t('transactionTable.header.description')}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                סכום
+                {t('transactionTable.header.amount')}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                קטגוריה
+                {t('transactionTable.header.category')}
               </th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                בנק
+                {t('transactionTable.header.bank')}
               </th>
             </tr>
           </thead>
@@ -188,7 +194,7 @@ export const TransactionTable: React.FC = () => {
                     className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     style={{ backgroundColor: getCategoryColor(transaction.category) + '20' }}
                   >
-                    <option value="">ללא קטגוריה</option>
+                    <option value="">{t('transactionTable.noCategory')}</option>
                     {categories.map(category => (
                       <option key={category.id} value={category.id}>
                         {getCategoryName(category.id)}
@@ -207,7 +213,7 @@ export const TransactionTable: React.FC = () => {
 
       {paginatedTransactions.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-500">לא נמצאו עסקאות</p>
+          <p className="text-gray-500">{t('transactionTable.noTransactionsFound')}</p>
         </div>
       )}
 
@@ -262,7 +268,7 @@ export const TransactionTable: React.FC = () => {
       {/* Results info */}
       <div className="p-4 text-center border-t border-gray-200">
         <p className="text-sm text-gray-500">
-          מוצגות {startIndex + 1}-{Math.min(endIndex, filteredTransactions.length)} עסקאות מתוך {filteredTransactions.length.toLocaleString()}
+          {t('transactionTable.showingInfo', { start: startIndex + 1, end: Math.min(endIndex, filteredTransactions.length), total: filteredTransactions.length.toLocaleString() })}
         </p>
       </div>
     </div>
