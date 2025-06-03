@@ -58,15 +58,15 @@ export const UploadZone: React.FC = () => {
   });
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">{t('upload.title')}</h2>
+    <div className="premium-card p-6">
+      <h2 className="text-lg font-semibold text-foreground mb-4">{t('upload.title')}</h2>
       
       <div
         {...getRootProps()}
         className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
           isDragActive
-            ? 'border-blue-400 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+            ? 'border-primary bg-primary/10'
+            : 'border-border hover:border-primary/50 hover:bg-muted/50'
         } ${uploading ? 'pointer-events-none opacity-50' : ''}`}
       >
         <input {...getInputProps()} />
@@ -74,17 +74,17 @@ export const UploadZone: React.FC = () => {
         <div className="space-y-4">
           {uploading ? (
             <>
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600">{t('upload.processing')}</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="text-muted-foreground">{t('upload.processing')}</p>
             </>
           ) : (
             <>
-              <Upload className="h-12 w-12 text-gray-400 mx-auto" />
+              <Upload className="h-12 w-12 text-muted-foreground mx-auto" />
               <div>
-                <p className="text-lg font-medium text-gray-900">
+                <p className="text-lg font-medium text-foreground">
                   {isDragActive ? t('upload.dropHere') : t('upload.dragDrop')}
                 </p>
-                <p className="text-gray-500 mt-1">
+                <p className="text-muted-foreground mt-1">
                   {t('upload.supportedFormats')}
                 </p>
               </div>
@@ -122,15 +122,15 @@ interface SupportedFormatProps {
 }
 
 const SupportedFormat: React.FC<SupportedFormatProps> = ({ bank, format, icon }) => (
-  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
     <div className="text-green-600">
       <CheckCircle className="h-4 w-4" />
     </div>
     <div className="flex-1">
-      <p className="font-medium text-gray-900">{bank}</p>
-      <p className="text-gray-500 text-xs">{format}</p>
+      <p className="font-medium text-foreground">{bank}</p>
+      <p className="text-muted-foreground text-xs">{format}</p>
     </div>
-    <div className="text-gray-400">
+    <div className="text-muted-foreground">
       {icon}
     </div>
   </div>
