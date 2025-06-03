@@ -1,7 +1,7 @@
-
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import { Transaction, BankType, BankConfig } from '../types/finance';
+import { parseDiscountBankFile, convertDiscountToStandardTransaction } from './discountBankParser';
 
 const bankConfigs: Record<BankType, BankConfig> = {
   max: {
@@ -14,11 +14,11 @@ const bankConfigs: Record<BankType, BankConfig> = {
   },
   discount: {
     name: 'בנק דיסקונט',
-    dateColumn: 'DATE',
-    descriptionColumn: 'DESCRIPTION',
-    amountColumn: 'AMOUNT',
-    balanceColumn: 'BALANCE',
-    dateFormat: 'YYYY-MM-DD'
+    dateColumn: 'תאריך פעולה',
+    descriptionColumn: 'תיאור פעולה',
+    amountColumn: 'חיוב',
+    balanceColumn: 'יתרה',
+    dateFormat: 'DD/MM/YYYY'
   },
   cal: {
     name: 'CAL',
@@ -45,7 +45,22 @@ export async function parseFileData(file: File): Promise<Transaction[]> {
     if (fileExtension === 'csv') {
       data = await parseCSV(file);
     } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
-      data = await parseXLSX(file);
+      // For XLSX files, first try enhanced Discount Bank parsing
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Check if this looks like a Discount Bank file by trying enhanced parsing
+      try {
+        const discountTransactions = parseDiscountBankFile(arrayBuffer);
+        if (discountTransactions.length > 0) {
+          console.log(`Successfully parsed ${discountTransactions.length} transactions with enhanced Discount Bank parser`);
+          return discountTransactions.map(convertDiscountToStandardTransaction);
+        }
+      } catch (discountError) {
+        console.log('Enhanced Discount Bank parsing failed, falling back to generic XLSX parsing:', discountError);
+      }
+      
+      // Fall back to generic XLSX parsing
+      data = await parseXLSXFromBuffer(arrayBuffer);
     } else {
       throw new Error(`Unsupported file format: ${fileExtension}`);
     }
@@ -85,54 +100,51 @@ async function parseCSV(file: File): Promise<any[]> {
 }
 
 async function parseXLSX(file: File): Promise<any[]> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        
-        // Convert to object format with headers
-        const headers = jsonData[0] as string[];
-        const rows = jsonData.slice(1).map(row => {
-          const obj: any = {};
-          headers.forEach((header, index) => {
-            obj[header] = (row as any[])[index];
-          });
-          return obj;
-        });
-        
-        resolve(rows);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsArrayBuffer(file);
+  const arrayBuffer = await file.arrayBuffer();
+  return parseXLSXFromBuffer(arrayBuffer);
+}
+
+function parseXLSXFromBuffer(arrayBuffer: ArrayBuffer): any[] {
+  const data = new Uint8Array(arrayBuffer);
+  const workbook = XLSX.read(data, { type: 'array' });
+  const sheetName = workbook.SheetNames[0];
+  const worksheet = workbook.Sheets[sheetName];
+  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  
+  // Convert to object format with headers
+  const headers = jsonData[0] as string[];
+  const rows = jsonData.slice(1).map(row => {
+    const obj: any = {};
+    headers.forEach((header, index) => {
+      obj[header] = (row as any[])[index];
+    });
+    return obj;
   });
+  
+  return rows;
 }
 
 function detectBankType(firstRow: any): BankType {
   const headers = Object.keys(firstRow).map(h => h.toLowerCase());
+  
+  // Enhanced Discount Bank detection
+  if (headers.some(h => h.includes('תאריך פעולה') || h.includes('תיאור פעולה'))) {
+    return 'discount';
+  }
   
   // MAX Bank detection
   if (headers.some(h => h.includes('תאריך') || h.includes('יתרה'))) {
     return 'max';
   }
   
-  // Discount Bank detection
-  if (headers.includes('date') && headers.includes('description') && headers.includes('amount')) {
-    return 'discount';
-  }
-  
   // CAL detection
   if (headers.includes('date') && !headers.includes('balance')) {
     return 'cal';
+  }
+  
+  // Generic detection for Discount if other methods fail
+  if (headers.includes('date') && headers.includes('description') && headers.includes('amount')) {
+    return 'discount';
   }
   
   return 'unknown';
