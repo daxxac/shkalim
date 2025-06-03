@@ -5,6 +5,7 @@ import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { Button } from './ui/button';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { Toggle } from './ui/toggle';
 import { cn } from '../lib/utils';
 import { format } from 'date-fns';
 
@@ -21,6 +22,10 @@ interface TransactionFiltersProps {
   categoryFilter: string;
   onCategoryFilterChange: (category: string) => void;
   categories: Array<{ id: string; name: string }>;
+  incomeFilter: boolean;
+  expenseFilter: boolean;
+  onIncomeFilterChange: (value: boolean) => void;
+  onExpenseFilterChange: (value: boolean) => void;
 }
 
 export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
@@ -30,7 +35,11 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   onSearchTextChange,
   categoryFilter,
   onCategoryFilterChange,
-  categories
+  categories,
+  incomeFilter,
+  expenseFilter,
+  onIncomeFilterChange,
+  onExpenseFilterChange
 }) => {
   const { t } = useTranslation();
 
@@ -41,7 +50,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
   const hasDateFilter = dateFilter.start || dateFilter.end;
 
   return (
-    <div className="space-y-4 p-4 bg-background border border-border rounded-lg">
+    <div className="space-y-4 p-4 premium-card">
       <div className="flex flex-wrap gap-4">
         {/* Search */}
         <div className="flex-1 min-w-64">
@@ -50,7 +59,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             placeholder={t('transactions.search')}
             value={searchText}
             onChange={(e) => onSearchTextChange(e.target.value)}
-            className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
           />
         </div>
 
@@ -58,7 +67,7 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
         <select
           value={categoryFilter}
           onChange={(e) => onCategoryFilterChange(e.target.value)}
-          className="px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background"
+          className="px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
         >
           <option value="">{t('categories.all')}</option>
           {categories.map(category => (
@@ -67,6 +76,26 @@ export const TransactionFilters: React.FC<TransactionFiltersProps> = ({
             </option>
           ))}
         </select>
+      </div>
+
+      {/* Income/Expense Toggles */}
+      <div className="flex gap-2">
+        <Toggle
+          pressed={incomeFilter}
+          onPressedChange={onIncomeFilterChange}
+          variant="outline"
+          className="text-sm"
+        >
+          {t('navigation.income')}
+        </Toggle>
+        <Toggle
+          pressed={expenseFilter}
+          onPressedChange={onExpenseFilterChange}
+          variant="outline"
+          className="text-sm"
+        >
+          {t('navigation.expenses')}
+        </Toggle>
       </div>
 
       {/* Date Filters */}

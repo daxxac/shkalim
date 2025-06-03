@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
 import { Card, CardContent } from './ui/card';
@@ -22,6 +22,20 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   const [searchText, setSearchText] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<DateFilter>({});
+  const [incomeFilter, setIncomeFilter] = useState(false);
+  const [expenseFilter, setExpenseFilter] = useState(false);
+
+  // Set default date filter to current month
+  useEffect(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    setDateFilter({
+      start: startOfMonth,
+      end: endOfMonth
+    });
+  }, []);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -34,6 +48,13 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
 
     if (categoryFilter) {
       filtered = filtered.filter(t => t.category === categoryFilter);
+    }
+
+    // Income/Expense filter
+    if (incomeFilter && !expenseFilter) {
+      filtered = filtered.filter(t => t.amount > 0);
+    } else if (expenseFilter && !incomeFilter) {
+      filtered = filtered.filter(t => t.amount < 0);
     }
 
     // Date filter
@@ -55,7 +76,49 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
     }
 
     return filtered.slice(0, limit);
-  }, [transactions, searchText, categoryFilter, dateFilter, limit]);
+  }, [transactions, searchText, categoryFilter, dateFilter, incomeFilter, expenseFilter, limit]);
+
+  // Calculate stats for filtered period
+  const stats = useMemo(() => {
+    let periodTransactions = transactions;
+
+    // Apply date filter
+    if (dateFilter.start || dateFilter.end) {
+      periodTransactions = transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        const startDate = dateFilter.start;
+        const endDate = dateFilter.end;
+
+        if (startDate && endDate) {
+          return transactionDate >= startDate && transactionDate <= endDate;
+        } else if (startDate) {
+          return transactionDate >= startDate;
+        } else if (endDate) {
+          return transactionDate <= endDate;
+        }
+        return true;
+      });
+    }
+
+    const income = periodTransactions
+      .filter(t => t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const expenses = Math.abs(periodTransactions
+      .filter(t => t.amount < 0)
+      .reduce((sum, t) => sum + t.amount, 0));
+
+    const totalDebit = expenses;
+
+    // Get latest balance from Discount Bank
+    const discountTransactions = transactions
+      .filter(t => t.bank?.toLowerCase() === 'discount')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const currentBalance = discountTransactions.length > 0 ? discountTransactions[0].balance || 0 : 0;
+
+    return { income, expenses, totalDebit, currentBalance };
+  }, [transactions, dateFilter]);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return t('categories.other');
@@ -69,7 +132,46 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="premium-card">
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-2">Текущий баланс (Дисконт)</div>
+            <div className="text-2xl font-bold text-foreground">
+              ₪{stats.currentBalance.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="premium-card">
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-2">Доходы за период</div>
+            <div className="text-2xl font-bold text-green-600">
+              ₪{stats.income.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="premium-card">
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-2">Расходы за период</div>
+            <div className="text-2xl font-bold text-red-600">
+              ₪{stats.expenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="premium-card">
+          <CardContent className="p-6">
+            <div className="text-sm text-muted-foreground mb-2">Списано в текущем месяце</div>
+            <div className="text-2xl font-bold text-orange-600">
+              ₪{stats.totalDebit.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Filters */}
       <TransactionFilters
         dateFilter={dateFilter}
@@ -79,6 +181,10 @@ export const DashboardTransactions: React.FC<DashboardTransactionsProps> = ({ li
         categoryFilter={categoryFilter}
         onCategoryFilterChange={setCategoryFilter}
         categories={categories}
+        incomeFilter={incomeFilter}
+        expenseFilter={expenseFilter}
+        onIncomeFilterChange={setIncomeFilter}
+        onExpenseFilterChange={setExpenseFilter}
       />
 
       {/* Transactions List */}

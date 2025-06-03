@@ -15,6 +15,8 @@ export const TransactionTable: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>({});
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [incomeFilter, setIncomeFilter] = useState(false);
+  const [expenseFilter, setExpenseFilter] = useState(false);
 
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
@@ -29,6 +31,13 @@ export const TransactionTable: React.FC = () => {
     // Category filter
     if (categoryFilter) {
       filtered = filtered.filter(t => t.category === categoryFilter);
+    }
+
+    // Income/Expense filter
+    if (incomeFilter && !expenseFilter) {
+      filtered = filtered.filter(t => t.amount > 0);
+    } else if (expenseFilter && !incomeFilter) {
+      filtered = filtered.filter(t => t.amount < 0);
     }
 
     // Date filter
@@ -64,7 +73,7 @@ export const TransactionTable: React.FC = () => {
     });
 
     return filtered.slice(0, 100); // Limit for performance
-  }, [transactions, searchText, categoryFilter, dateFilter, sortBy, sortOrder]);
+  }, [transactions, searchText, categoryFilter, dateFilter, sortBy, sortOrder, incomeFilter, expenseFilter]);
 
   const getCategoryName = (categoryId?: string) => {
     if (!categoryId) return 'ללא קטגוריה';
@@ -110,6 +119,10 @@ export const TransactionTable: React.FC = () => {
           categoryFilter={categoryFilter}
           onCategoryFilterChange={setCategoryFilter}
           categories={categories}
+          incomeFilter={incomeFilter}
+          expenseFilter={expenseFilter}
+          onIncomeFilterChange={setIncomeFilter}
+          onExpenseFilterChange={setExpenseFilter}
         />
       </div>
 

@@ -64,38 +64,6 @@ export const AnalyticsPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Stats */}
-      <div className="premium-card p-6">
-        <h3 className="text-lg font-semibold text-foreground mb-4">
-          {t('dashboard.currentBalance')}
-        </h3>
-        
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">{t('categories.salary')}:</span>
-            <span className="font-bold text-green-600">
-              ₪{totalIncome.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">{t('navigation.expenses')}:</span>
-            <span className="font-bold text-red-600">
-              ₪{totalExpenses.toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          
-          <div className="flex justify-between items-center pt-2 border-t border-border">
-            <span className="text-foreground font-medium">{t('dashboard.currentBalance')}:</span>
-            <span className={`font-bold text-lg ${
-              totalIncome - totalExpenses >= 0 ? 'text-green-600' : 'text-red-600'
-            }`}>
-              ₪{(totalIncome - totalExpenses).toLocaleString('he-IL', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-      </div>
-
       {/* Income by Category */}
       {incomeData.length > 0 && (
         <div className="premium-card p-6">
