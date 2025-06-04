@@ -27,12 +27,11 @@ import {
   DrawerTrigger,
 } from './ui/drawer';
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from './ui/navigation-menu';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -168,36 +167,38 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const MobileTabs = () => (
     <div className="mb-6">
-      <NavigationMenu className="mx-auto">
-        <NavigationMenuList>
-          <NavigationMenuItem>
-            <NavigationMenuTrigger className="premium-button">
+      <div className="flex justify-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="premium-button w-64">
               {navigationItems.find(item => item.value === activeTab)?.icon && (
                 React.createElement(navigationItems.find(item => item.value === activeTab)!.icon, { className: "h-4 w-4 mr-2" })
               )}
               {navigationItems.find(item => item.value === activeTab)?.label}
-            </NavigationMenuTrigger>
-            <NavigationMenuContent>
-              <div className="grid gap-2 p-4 w-80">
-                {navigationItems.map((item) => {
-                  const IconComponent = item.icon;
-                  return (
-                    <Button
-                      key={item.value}
-                      variant={activeTab === item.value ? "default" : "ghost"}
-                      className="justify-start gap-2 h-10"
-                      onClick={() => onTabChange(item.value)}
-                    >
-                      <IconComponent className="h-4 w-4" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </div>
-            </NavigationMenuContent>
-          </NavigationMenuItem>
-        </NavigationMenuList>
-      </NavigationMenu>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="center" 
+            side="bottom" 
+            className="w-64 bg-background border shadow-lg z-50"
+            sideOffset={8}
+          >
+            {navigationItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <DropdownMenuItem
+                  key={item.value}
+                  onClick={() => onTabChange(item.value)}
+                  className="flex items-center gap-2 cursor-pointer"
+                >
+                  <IconComponent className="h-4 w-4" />
+                  {item.label}
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </div>
   );
 
