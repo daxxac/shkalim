@@ -188,6 +188,9 @@
   },
   "security": {
     "title": "הגדרות אבטחה",
+    "setPinTitle": "הגדר קוד PIN להצפנת נתונים",
+    "unlockDataTitle": "פתח נתונים",
+    "changePinTitle": "שנה קוד PIN להצפנת נתונים",
     "dataProtection": "הגנת נתונים",
     "encryptionInfo": "הנתונים שלך מוצפנים ונשמרים מקומית",
     "newPassword": "סיסמה חדשה",
@@ -205,6 +208,8 @@
     "unlockError": "שגיאה בפתיחת הנעילה. נסה שוב.",
     "unlockTitle": "פתח גישה",
     "unlockButton": "פתח",
+    "pinLabel": "קוד PIN להצפנת נתונים",
+    "newPinLabel": "קוד PIN חדש",
     "processing": "מעבד..."
   },
   "autoSync": {

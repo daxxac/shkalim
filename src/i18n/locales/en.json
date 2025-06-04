@@ -188,6 +188,9 @@
   },
   "security": {
     "title": "Security Settings",
+    "setPinTitle": "Set Data Encryption PIN",
+    "unlockDataTitle": "Unlock Data",
+    "changePinTitle": "Change Data Encryption PIN",
     "dataProtection": "Data Protection",
     "encryptionInfo": "Your data is encrypted and stored locally",
     "newPassword": "New Password",
@@ -206,6 +209,8 @@
     "unlockTitle": "Unlock Access",
     "unlockButton": "Unlock",
     "passwordLabel": "Password",
+    "pinLabel": "Data Encryption PIN",
+    "newPinLabel": "New PIN",
     "processing": "Processing..."
   },
   "autoSync": {

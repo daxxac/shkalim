@@ -331,18 +331,9 @@ const Index = () => {
             <p className="text-muted-foreground">{t('auth.enterDataPasswordPrompt', 'Enter your Data Encryption Password')}</p>
           </div>
           <div className="space-y-4">
-            <Input
-              type="password"
-              value={dataEncryptionPasswordInput}
-              onChange={(e) => setDataEncryptionPasswordInput(e.target.value)}
-              placeholder={t('auth.dataPasswordPlaceholder', 'Data Encryption Password')}
-              className="w-full px-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent text-right bg-background text-foreground"
-              onKeyPress={(e) => e.key === 'Enter' && handleUnlockDataSubmit()}
-            />
             <Button
-              onClick={handleUnlockDataSubmit}
+              onClick={() => openSecurityModal('unlock_data')}
               className="w-full premium-button"
-              disabled={!dataEncryptionPasswordInput}
             >
               {t('auth.unlockDataButton', 'Unlock Data')}
             </Button>

@@ -176,10 +176,11 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
               <label htmlFor="pin" className="block text-sm font-medium text-foreground mb-2">
                 {mode === 'unlock_data'
                     ? t('security.pinLabel', 'Data Encryption PIN')
-                    : t('security.newPin', 'New PIN')}
+                    : t('security.newPinLabel', 'New PIN')}
               </label>
               <div className="flex justify-center">
                 <InputOTP
+                    key={mode}
                     maxLength={4}
                     value={pin}
                     onChange={(value) => setPin(value)}

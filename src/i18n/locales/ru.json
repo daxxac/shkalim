@@ -192,6 +192,9 @@
   },
   "security": {
     "title": "Настройки безопасности",
+    "setPinTitle": "Установить PIN-код шифрования данных",
+    "unlockDataTitle": "Разблокировать данные",
+    "changePinTitle": "Изменить PIN-код шифрования данных",
     "dataProtection": "Защита данных",
     "encryptionInfo": "Ваши данные зашифрованы и хранятся локально",
     "newPassword": "Новый пароль",
@@ -210,6 +213,8 @@
     "unlockTitle": "Разблокировать доступ",
     "unlockButton": "Разблокировать",
     "passwordLabel": "Пароль",
+    "pinLabel": "PIN-код шифрования данных",
+    "newPinLabel": "Новый PIN-код",
     "processing": "Обработка..."
   },
   "autoSync": {
