@@ -28,12 +28,23 @@ const InputOTPGroup = React.forwardRef<
 ))
 InputOTPGroup.displayName = "InputOTPGroup"
 
+// Define the expected shape of the slot-specific props from 'input-otp' library
+interface SlotSpecificProps {
+  char: string | null;
+  hasFakeCaret: boolean;
+  isActive: boolean;
+  // No index signature here, other props will be handled by ComponentPropsWithoutRef
+}
+
 const InputOTPSlot = React.forwardRef<
   React.ElementRef<"div">,
-  React.ComponentPropsWithoutRef<"div"> & { index: number }
->(({ index, className, ...props }, ref) => {
-  const inputOTPContext = React.useContext(OTPInputContext)
-  const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index]
+  Omit<React.ComponentPropsWithoutRef<"div">, keyof SlotSpecificProps> & // Omit to avoid conflict if div has same prop names
+  { index: number } &
+  SlotSpecificProps
+>(({ index, className, char, hasFakeCaret, isActive, ...props }, ref) => {
+  // Ensure `props` does not contain char, hasFakeCaret, isActive if they were part of ComponentPropsWithoutRef<"div">
+  // However, standard div props don't have these, so direct intersection is usually fine.
+  // The Omit is a stricter way to prevent potential naming collisions with underlying div props.
 
   return (
     <div
@@ -45,6 +56,7 @@ const InputOTPSlot = React.forwardRef<
       )}
       {...props}
     >
+      {/* Display the character passed in props, not the children from SecurityModal */}
       {char}
       {hasFakeCaret && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
