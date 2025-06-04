@@ -1,34 +1,33 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Shield, AlertTriangle, KeyRound, LogIn, LockKeyhole } from 'lucide-react'; // Added LockKeyhole
+import { X, Shield, AlertTriangle, KeyRound, LogIn, LockKeyhole } from 'lucide-react';
 import { Button } from './ui/button';
-import { useFinanceStore } from '../store/financeStore'; // Import the store
+import { InputOTP, InputOTPGroup, InputOTPSlot } from './ui/input-otp';
+import { useFinanceStore } from '../store/financeStore';
 
 interface SecurityModalProps {
   mode: 'set_initial_data_password' | 'unlock_data' | 'change_data_password';
   onClose: () => void;
-  onSuccess?: () => void; // Optional: callback on successful operation
+  onSuccess?: () => void;
 }
 
 export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onSuccess }) => {
   const { t } = useTranslation();
-  const { setDataEncryptionPassword, unlockData } = useFinanceStore.getState(); // Get actions from store
+  const { setDataEncryptionPassword, unlockData } = useFinanceStore.getState();
 
-  const [password, setPassword] = useState(''); // For new password or unlock password
-  const [confirmPassword, setConfirmPassword] = useState(''); // Only used in 'set_initial_data_password' or 'change_data_password'
-  const [oldPassword, setOldPassword] = useState(''); // Only used in 'change_data_password' mode
-  const [showPassword, setShowPassword] = useState(false);
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [oldPin, setOldPin] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Reset form on mode change
   useEffect(() => {
-    setPassword('');
-    setConfirmPassword('');
-    setOldPassword(''); // Reset old password
+    setPin('');
+    setConfirmPin('');
+    setOldPin('');
     setError(null);
-    setShowPassword(false);
   }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,38 +35,44 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
     setError(null);
     setIsLoading(true);
 
-    // Password length validation for setting/changing password
-    if ((mode === 'set_initial_data_password' || mode === 'change_data_password') && password.length < 8) {
-      setError(t('security.passwordMinLength'));
+    // PIN length validation
+    if ((mode === 'set_initial_data_password' || mode === 'change_data_password') && pin.length !== 4) {
+      setError(t('security.pinMustBe4Digits', 'PIN must be exactly 4 digits'));
       setIsLoading(false);
       return;
     }
 
-    // Confirm password validation for setting/changing password
-    if ((mode === 'set_initial_data_password' || mode === 'change_data_password') && password !== confirmPassword) {
-      setError(t('security.passwordMismatch'));
+    if (mode === 'unlock_data' && pin.length !== 4) {
+      setError(t('security.pinMustBe4Digits', 'PIN must be exactly 4 digits'));
+      setIsLoading(false);
+      return;
+    }
+
+    // Confirm PIN validation
+    if ((mode === 'set_initial_data_password' || mode === 'change_data_password') && pin !== confirmPin) {
+      setError(t('security.pinMismatch', 'PINs do not match'));
       setIsLoading(false);
       return;
     }
     
-    // Old password required for changing password
-    if (mode === 'change_data_password' && !oldPassword) {
-      setError(t('security.oldPasswordRequired', 'Old password is required.')); // Add new translation
+    // Old PIN required for changing PIN
+    if (mode === 'change_data_password' && oldPin.length !== 4) {
+      setError(t('security.oldPinRequired', 'Current PIN is required and must be 4 digits'));
       setIsLoading(false);
       return;
     }
 
     try {
       if (mode === 'set_initial_data_password') {
-        await setDataEncryptionPassword(password);
+        await setDataEncryptionPassword(pin);
         onSuccess?.();
         onClose();
       } else if (mode === 'change_data_password') {
-        await setDataEncryptionPassword(password, oldPassword);
+        await setDataEncryptionPassword(pin, oldPin);
         onSuccess?.();
         onClose();
       } else if (mode === 'unlock_data') {
-        await unlockData(password);
+        await unlockData(pin);
         onSuccess?.();
         onClose();
       }
@@ -83,22 +88,21 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
   
   let titleText = '';
   let submitButtonText = '';
-  let PageIcon = Shield; // Default icon
+  let PageIcon = Shield;
 
   if (mode === 'set_initial_data_password') {
-    titleText = t('security.setDataPasswordTitle', 'Set Data Encryption Password');
-    submitButtonText = t('security.setDataPasswordButton', 'Set Password');
+    titleText = t('security.setPinTitle', 'Set Data Encryption PIN');
+    submitButtonText = t('security.setPinButton', 'Set PIN');
     PageIcon = Shield;
   } else if (mode === 'unlock_data') {
     titleText = t('security.unlockDataTitle', 'Unlock Data');
-    submitButtonText = t('security.unlockButton', 'Unlock'); // Can reuse
+    submitButtonText = t('security.unlockButton', 'Unlock');
     PageIcon = LogIn;
   } else if (mode === 'change_data_password') {
-    titleText = t('security.changeDataPasswordTitle', 'Change Data Encryption Password');
-    submitButtonText = t('security.changeDataPasswordButton', 'Change Password');
+    titleText = t('security.changePinTitle', 'Change Data Encryption PIN');
+    submitButtonText = t('security.changePinButton', 'Change PIN');
     PageIcon = LockKeyhole;
   }
-
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -135,98 +139,78 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
-              </div> {/* Закрываем div для flex items-center */}
+              </div>
             </div>
           )}
 
-          {/* Этот блок был ошибочным, удаляем его. Следующий div для пароля корректен. */}
-          {/* <div>
-            </div>
-          )} */}
-
           {mode === 'change_data_password' && (
             <div>
-              <label htmlFor="oldPassword" className="block text-sm font-medium text-foreground mb-2">
-                {t('security.oldPasswordLabel', 'Current Data Encryption Password')}
+              <label htmlFor="oldPin" className="block text-sm font-medium text-foreground mb-2">
+                {t('security.currentPin', 'Current PIN')}
               </label>
-              <div className="relative">
-                <input
-                  id="oldPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder={t('security.oldPasswordPlaceholder', 'Enter current password')}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                  required
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={4}
+                  value={oldPin}
+                  onChange={(value) => setOldPin(value)}
                   disabled={isLoading}
-                />
-                <span className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <KeyRound className="h-5 w-5 text-gray-400" />
-                </span>
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
             </div>
           )}
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+            <label htmlFor="pin" className="block text-sm font-medium text-foreground mb-2">
               {mode === 'unlock_data'
-                ? t('security.passwordLabel', 'Data Encryption Password')
-                : t('security.newPassword', 'New Data Encryption Password')}
+                ? t('security.pinLabel', 'Data Encryption PIN')
+                : t('security.newPin', 'New PIN')}
             </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === 'unlock_data' ? t('security.passwordPlaceholder', 'Enter password') : t('security.newPasswordPlaceholder', 'Enter new password')}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                required
-                minLength={(mode === 'set_initial_data_password' || mode === 'change_data_password') ? 8 : undefined}
+            <div className="flex justify-center">
+              <InputOTP
+                maxLength={4}
+                value={pin}
+                onChange={(value) => setPin(value)}
                 disabled={isLoading}
-              />
-              <span className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <KeyRound className="h-5 w-5 text-gray-400" />
-              </span>
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                </InputOTPGroup>
+              </InputOTP>
             </div>
           </div>
           
           {(mode === 'set_initial_data_password' || mode === 'change_data_password') && (
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
-                {t('security.confirmPassword', 'Confirm New Password')}
+              <label htmlFor="confirmPin" className="block text-sm font-medium text-foreground mb-2">
+                {t('security.confirmPin', 'Confirm PIN')}
               </label>
-              <div className="relative">
-                <input
-                  id="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder={t('security.confirmPasswordPlaceholder', 'Confirm new password')}
-                  className="w-full px-3 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                  required
+              <div className="flex justify-center">
+                <InputOTP
+                  maxLength={4}
+                  value={confirmPin}
+                  onChange={(value) => setConfirmPin(value)}
                   disabled={isLoading}
-                />
-                <span className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                  <KeyRound className="h-5 w-5 text-gray-400" />
-                </span>
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                  </InputOTPGroup>
+                </InputOTP>
               </div>
             </div>
           )}
-
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              id="showDataPassword"
-              checked={showPassword}
-              onChange={(e) => setShowPassword(e.target.checked)}
-              className="ml-2 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
-              disabled={isLoading}
-            />
-            <label htmlFor="showDataPassword" className="ml-2 block text-sm text-muted-foreground">
-              {t('security.showPassword', 'Show password')}
-            </label>
-          </div>
 
           {(mode === 'set_initial_data_password' || mode === 'change_data_password') && (
             <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
@@ -239,11 +223,6 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
               </div>
             </div>
           )}
-
-          {/* Удаляем этот лишний блок div, который был здесь */}
-          {/* <div className="flex gap-3 pt-4">
-            </div>
-          </div> */}
 
           <div className="flex gap-3 pt-4">
             <Button
@@ -260,9 +239,9 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
               className="flex-1"
               disabled={
                 isLoading ||
-                !password ||
-                ((mode === 'set_initial_data_password' || mode === 'change_data_password') && (!confirmPassword || password.length < 8)) ||
-                (mode === 'change_data_password' && !oldPassword)
+                pin.length !== 4 ||
+                ((mode === 'set_initial_data_password' || mode === 'change_data_password') && confirmPin.length !== 4) ||
+                (mode === 'change_data_password' && oldPin.length !== 4)
               }
             >
               {isLoading ? t('security.processing', 'Processing...') : submitButtonText}
