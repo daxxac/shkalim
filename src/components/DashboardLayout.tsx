@@ -1,7 +1,9 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFinanceStore } from '../store/financeStore';
-import { useTheme } from '../hooks/useTheme'; // Added import
+import { useTheme } from '../hooks/useTheme';
+import { useIsMobile } from '../hooks/use-mobile';
 import { Button } from './ui/button';
 import { LanguageSwitcher } from './LanguageSwitcher';
 import { ThemeToggle } from './ThemeToggle';
@@ -9,12 +11,28 @@ import {
   BarChart3,
   Upload,
   Settings,
-  RotateCcw,
-  Lock,
   Calendar,
-  LogIn as LogInIcon // Added for login button
+  LogIn as LogInIcon,
+  Lock,
+  Menu,
+  X
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from './ui/drawer';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from './ui/navigation-menu';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -29,18 +47,159 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   const { t } = useTranslation();
   const { lockData, handleSupabaseLogout, isSupabaseAuthenticated } = useFinanceStore();
-  const { theme } = useTheme(); // Added useTheme hook
+  const { theme } = useTheme();
+  const isMobile = useIsMobile();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleAuthAction = async () => {
     if (isSupabaseAuthenticated) {
-      lockData(); // Lock local data
-      await handleSupabaseLogout(); // Logout from Supabase
+      lockData();
+      await handleSupabaseLogout();
     } else {
-      // If not authenticated, calling logout will ensure isSupabaseAuthenticated is false,
-      // which should lead to the login/signup screen on Index page.
       await handleSupabaseLogout();
     }
   };
+
+  const navigationItems = [
+    {
+      value: 'dashboard',
+      label: t('navigation.dashboard'),
+      icon: BarChart3,
+    },
+    {
+      value: 'upload',
+      label: t('navigation.upload'),
+      icon: Upload,
+    },
+    {
+      value: 'upcomingCharges',
+      label: t('navigation.upcomingCharges'),
+      icon: Calendar,
+    },
+    {
+      value: 'settings',
+      label: t('navigation.settings'),
+      icon: Settings,
+    },
+  ];
+
+  const MobileNavigation = () => (
+    <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+      <DrawerTrigger asChild>
+        <Button variant="ghost" size="sm" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader className="text-left">
+          <DrawerTitle className="flex items-center justify-between">
+            <span>{t('navigation.menu', 'Menu')}</span>
+            <DrawerClose asChild>
+              <Button variant="ghost" size="sm">
+                <X className="h-4 w-4" />
+              </Button>
+            </DrawerClose>
+          </DrawerTitle>
+        </DrawerHeader>
+        <div className="px-4 pb-6">
+          <div className="grid gap-3">
+            {navigationItems.map((item) => {
+              const IconComponent = item.icon;
+              return (
+                <Button
+                  key={item.value}
+                  variant={activeTab === item.value ? "default" : "ghost"}
+                  className="justify-start gap-3 h-12"
+                  onClick={() => {
+                    onTabChange(item.value);
+                    setIsDrawerOpen(false);
+                  }}
+                >
+                  <IconComponent className="h-5 w-5" />
+                  {item.label}
+                </Button>
+              );
+            })}
+          </div>
+          <div className="mt-6 pt-6 border-t">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-medium">{t('navigation.settings', 'Settings')}</span>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <ThemeToggle />
+              <LanguageSwitcher />
+            </div>
+            <Button
+              variant="outline"
+              className="w-full premium-button"
+              onClick={handleAuthAction}
+            >
+              {isSupabaseAuthenticated ? <Lock className="h-4 w-4 mr-2" /> : <LogInIcon className="h-4 w-4 mr-2" />}
+              {isSupabaseAuthenticated ? t('navigation.lockSystem', 'Lock & Logout') : t('navigation.loginSignUp', 'Login / Sign Up')}
+            </Button>
+          </div>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+
+  const DesktopNavigation = () => (
+    <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
+      <TabsList className="grid w-full grid-cols-4 premium-card">
+        {navigationItems.map((item) => {
+          const IconComponent = item.icon;
+          return (
+            <TabsTrigger 
+              key={item.value}
+              value={item.value} 
+              className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <IconComponent className="h-4 w-4" />
+              {item.label}
+            </TabsTrigger>
+          );
+        })}
+      </TabsList>
+      <TabsContent value={activeTab} className="space-y-6">
+        {children}
+      </TabsContent>
+    </Tabs>
+  );
+
+  const MobileTabs = () => (
+    <div className="mb-6">
+      <NavigationMenu className="mx-auto">
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger className="premium-button">
+              {navigationItems.find(item => item.value === activeTab)?.icon && (
+                React.createElement(navigationItems.find(item => item.value === activeTab)!.icon, { className: "h-4 w-4 mr-2" })
+              )}
+              {navigationItems.find(item => item.value === activeTab)?.label}
+            </NavigationMenuTrigger>
+            <NavigationMenuContent>
+              <div className="grid gap-2 p-4 w-80">
+                {navigationItems.map((item) => {
+                  const IconComponent = item.icon;
+                  return (
+                    <Button
+                      key={item.value}
+                      variant={activeTab === item.value ? "default" : "ghost"}
+                      className="justify-start gap-2 h-10"
+                      onClick={() => onTabChange(item.value)}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                      {item.label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/30">
@@ -63,53 +222,45 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <ThemeToggle />
-              <LanguageSwitcher />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleAuthAction}
-                className="premium-button"
-              >
-                {isSupabaseAuthenticated ? <Lock className="h-4 w-4 mr-2" /> : <LogInIcon className="h-4 w-4 mr-2" />}
-                {isSupabaseAuthenticated ? t('navigation.lockSystem', 'Lock & Logout') : t('navigation.loginSignUp', 'Login / Sign Up')}
-              </Button>
-            </div>
+            {/* Mobile Navigation */}
+            {isMobile ? (
+              <div className="flex items-center space-x-2">
+                <ThemeToggle />
+                <MobileNavigation />
+              </div>
+            ) : (
+              /* Desktop Navigation */
+              <div className="flex items-center space-x-4">
+                <ThemeToggle />
+                <LanguageSwitcher />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAuthAction}
+                  className="premium-button"
+                >
+                  {isSupabaseAuthenticated ? <Lock className="h-4 w-4 mr-2" /> : <LogInIcon className="h-4 w-4 mr-2" />}
+                  {isSupabaseAuthenticated ? t('navigation.lockSystem', 'Lock & Logout') : t('navigation.loginSignUp', 'Login / Sign Up')}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 premium-card">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <BarChart3 className="h-4 w-4" />
-              {t('navigation.dashboard')}
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Upload className="h-4 w-4" />
-              {t('navigation.upload')}
-            </TabsTrigger>
-            <TabsTrigger value="upcomingCharges" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Calendar className="h-4 w-4" />
-              {t('navigation.upcomingCharges')}
-            </TabsTrigger>
-            {/* <TabsTrigger value="autoSync" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <RotateCcw className="h-4 w-4" />
-              {t('navigation.autoSync')}
-            </TabsTrigger> */}
-            <TabsTrigger value="settings" className="flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Settings className="h-4 w-4" />
-              {t('navigation.settings')}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={activeTab} className="space-y-6">
-            {children}
-          </TabsContent>
-        </Tabs>
+        {isMobile ? (
+          <>
+            <MobileTabs />
+            <div className="space-y-6">
+              {children}
+            </div>
+          </>
+        ) : (
+          <DesktopNavigation />
+        )}
       </main>
+      
       <footer className="w-full border-t bg-background/80 text-xs text-muted-foreground py-4 text-center mt-8">
         © {new Date().getFullYear()} Shkalim. All rights reserved.
       </footer>
