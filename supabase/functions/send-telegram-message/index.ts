@@ -1,8 +1,9 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
-const TELEGRAM_BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')
-const TELEGRAM_CHAT_ID = Deno.env.get('TELEGRAM_CHAT_ID')
+// Use the VITE_ prefix as per user's Supabase secret naming
+const TELEGRAM_BOT_TOKEN = Deno.env.get('VITE_TELEGRAM_BOT_TOKEN')
+const TELEGRAM_CHAT_ID = Deno.env.get('VITE_TELEGRAM_CHAT_ID')
 
 serve(async (req) => {
   // This is needed if you're planning to invoke your function from a browser.
