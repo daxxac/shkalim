@@ -23,13 +23,43 @@ export const AboutPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission (in real app, you'd send to backend)
+    // Read from environment variables
+    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+
+    if (!botToken || !chatId) {
+      console.error('Telegram bot token or chat ID is missing. Please set VITE_TELEGRAM_BOT_TOKEN and VITE_TELEGRAM_CHAT_ID environment variables.');
+      toast.error(t('about.contactForm.error') + ' (Configuration error)');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const messageText = `New Contact Form Submission:\nName: ${formData.name}\nEmail: ${formData.email}\nMessage: ${formData.message}`;
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success(t('about.contactForm.success'));
-      setFormData({ name: '', email: '', message: '' });
+      const response = await fetch(telegramApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: messageText,
+        }),
+      });
+
+      if (response.ok) {
+        toast.success(t('about.contactForm.success'));
+        setFormData({ name: '', email: '', message: '' });
+      } else {
+        const errorData = await response.json();
+        console.error('Telegram API error:', errorData);
+        toast.error(t('about.contactForm.error') + ` (Telegram: ${errorData.description || 'Unknown error'})`);
+      }
     } catch (error) {
-      toast.error(t('about.contactForm.error'));
+      console.error('Failed to send message to Telegram:', error);
+      toast.error(t('about.contactForm.error') + ` (Network error)`);
     } finally {
       setIsSubmitting(false);
     }
