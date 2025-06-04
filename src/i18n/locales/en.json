@@ -7,7 +7,8 @@
     "settings": "Settings",
     "menu": "Menu",
     "lockSystem": "Lock & Logout",
-    "loginSignUp": "Login / Sign Up"
+    "loginSignUp": "Login / Sign Up",
+    "about": "About"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -170,6 +171,37 @@
     "errorImportingTitle": "Import Error",
     "errorStoreLockedTitle": "Store Locked",
     "errorStoreLockedDescription": "Please unlock your current data before importing new data"
+  },
+  "about": {
+    "title": "About Shkalim & Contact",
+    "developerTitle": "Hi! I'm Dasha — a software developer, repatriate, and mom.",
+    "developerDescription": "I built Shkalim to help fellow olim (and anyone living in Israel) better understand and manage their finances — without sharing private data with third parties.",
+    "privacyNote": "All your data stays on your device. I care deeply about privacy, clarity, and simplicity.",
+    "projectNote": "This project started from personal frustration — now it's an open and growing tool. Want to help make it better? Scroll down 👇",
+    "bankSupportTitle": "Want to connect another bank or credit card provider?",
+    "bankSupportDescription": "If your institution is not yet supported — such as Isracard, Leumi, Otsar Hahayal, or others — please send:",
+    "bankSupportRequirements": {
+      "providerName": "The name of the provider",
+      "loginLink": "Link to their login page",
+      "sampleExport": "A sample export (CSV/XLS) with dummy data (or a screenshot)",
+      "extraNotes": "Any extra notes on their interface"
+    },
+    "contactInfo": "You can email it to: support@shkalim.com or use the contact form below.",
+    "contactForm": {
+      "title": "Contact Form",
+      "name": "Name",
+      "email": "Email",
+      "message": "Message",
+      "submit": "Submit",
+      "submitting": "Submitting...",
+      "success": "Message sent successfully!",
+      "error": "Error sending message"
+    },
+    "footer": {
+      "builtWith": "Built with 💙 in Tel Aviv.",
+      "version": "Version: 0.9.0 (MVP) — more features coming soon!"
+    },
+    "suggestProvider": "Suggest a new provider"
   },
   "alt": {
     "logo": "Logo",

@@ -15,7 +15,8 @@ import {
   LogIn as LogInIcon,
   Lock,
   Menu,
-  X
+  X,
+  Info
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
@@ -74,6 +75,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       value: 'upcomingCharges',
       label: t('navigation.upcomingCharges'),
       icon: Calendar,
+    },
+    {
+      value: 'about',
+      label: t('navigation.about'),
+      icon: Info,
     },
     {
       value: 'settings',
@@ -144,7 +150,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const DesktopNavigation = () => (
     <Tabs value={activeTab} onValueChange={onTabChange} className="space-y-6">
-      <TabsList className="grid w-full grid-cols-4 premium-card">
+      <TabsList className="grid w-full grid-cols-5 premium-card">
         {navigationItems.map((item) => {
           const IconComponent = item.icon;
           return (
