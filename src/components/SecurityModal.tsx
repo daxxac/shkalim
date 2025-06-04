@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Shield, AlertTriangle, KeyRound, LogIn, LockKeyhole } from 'lucide-react';
@@ -154,14 +153,21 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
                   value={oldPin}
                   onChange={(value) => setOldPin(value)}
                   disabled={isLoading}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                  </InputOTPGroup>
-                </InputOTP>
+                  render={({ slots }) => (
+                    <InputOTPGroup>
+                      {slots.map((slot, index) => (
+                        <InputOTPSlot 
+                          key={index} 
+                          {...slot} 
+                          index={index}
+                          className="h-12 w-12 text-lg"
+                        >
+                          {slot.char ? '•' : ''}
+                        </InputOTPSlot>
+                      ))}
+                    </InputOTPGroup>
+                  )}
+                />
               </div>
             </div>
           )}
@@ -178,14 +184,21 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
                 value={pin}
                 onChange={(value) => setPin(value)}
                 disabled={isLoading}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                </InputOTPGroup>
-              </InputOTP>
+                render={({ slots }) => (
+                  <InputOTPGroup>
+                    {slots.map((slot, index) => (
+                      <InputOTPSlot 
+                        key={index} 
+                        {...slot} 
+                        index={index}
+                        className="h-12 w-12 text-lg"
+                      >
+                        {slot.char ? '•' : ''}
+                      </InputOTPSlot>
+                    ))}
+                  </InputOTPGroup>
+                )}
+              />
             </div>
           </div>
           
@@ -200,14 +213,21 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ mode, onClose, onS
                   value={confirmPin}
                   onChange={(value) => setConfirmPin(value)}
                   disabled={isLoading}
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                  </InputOTPGroup>
-                </InputOTP>
+                  render={({ slots }) => (
+                    <InputOTPGroup>
+                      {slots.map((slot, index) => (
+                        <InputOTPSlot 
+                          key={index} 
+                          {...slot} 
+                          index={index}
+                          className="h-12 w-12 text-lg"
+                        >
+                          {slot.char ? '•' : ''}
+                        </InputOTPSlot>
+                      ))}
+                    </InputOTPGroup>
+                  )}
+                />
               </div>
             </div>
           )}
