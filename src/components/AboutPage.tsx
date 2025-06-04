@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client'; // Import Supabase client
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -23,43 +24,25 @@ export const AboutPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Read from environment variables
-    const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-    const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-    if (!botToken || !chatId) {
-      console.error('Telegram bot token or chat ID is missing. Please set VITE_TELEGRAM_BOT_TOKEN and VITE_TELEGRAM_CHAT_ID environment variables.');
-      toast.error(t('about.contactForm.error') + ' (Configuration error)');
-      setIsSubmitting(false);
-      return;
-    }
-
-    const telegramApiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
-    const messageText = `New Contact Form Submission:\nName: ${formData.name}\nEmail: ${formData.email}\nMessage: ${formData.message}`;
-
     try {
-      const response = await fetch(telegramApiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: messageText,
-        }),
-      });
+      const { data, error } = await supabase.functions.invoke('send-telegram-message', {
+        body: { name: formData.name, email: formData.email, message: formData.message },
+      })
 
-      if (response.ok) {
+      if (error) {
+        console.error('Error invoking Supabase function:', error)
+        toast.error(t('about.contactForm.error') + ` (Server: ${error.message || 'Function error'})`);
+      } else if (data && data.error) { // Handle errors returned in the function's JSON response
+        console.error('Supabase function returned an error:', data.error)
+        toast.error(t('about.contactForm.error') + ` (Server: ${data.error})`);
+      }
+      else {
         toast.success(t('about.contactForm.success'));
         setFormData({ name: '', email: '', message: '' });
-      } else {
-        const errorData = await response.json();
-        console.error('Telegram API error:', errorData);
-        toast.error(t('about.contactForm.error') + ` (Telegram: ${errorData.description || 'Unknown error'})`);
       }
     } catch (error) {
-      console.error('Failed to send message to Telegram:', error);
-      toast.error(t('about.contactForm.error') + ` (Network error)`);
+      console.error('Failed to invoke Supabase function:', error);
+      toast.error(t('about.contactForm.error') + ` (Network or client error)`);
     } finally {
       setIsSubmitting(false);
     }
