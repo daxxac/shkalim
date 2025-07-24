@@ -69,6 +69,11 @@ export const AboutPage = () => {
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row items-start gap-6">
             <Avatar className="h-20 w-20 mx-auto md:mx-0">
+              <img
+                src="/daria.png"
+                alt="Daria"
+                className="rounded-full object-cover h-20 w-20 border-2 border-primary"
+              />
               <AvatarFallback className="text-2xl bg-primary text-primary-foreground">
                 👩‍💻
               </AvatarFallback>
@@ -83,6 +88,9 @@ export const AboutPage = () => {
                   {t('about.privacyNote')}
                 </p>
                 <p>{t('about.projectNote')}</p>
+                <p className="pt-2">
+                  <a href="https://github.com/daxxac/shkalim" target="_blank" rel="noopener noreferrer" className="underline text-primary font-medium">Open Source on GitHub</a>
+                </p>
               </div>
             </div>
           </div>
@@ -136,59 +144,7 @@ export const AboutPage = () => {
       </Card>
 
       {/* Contact Form */}
-      <Card className="premium-card">
-        <CardHeader>
-          <CardTitle>{t('about.contactForm.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('about.contactForm.name')}</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">{t('about.contactForm.email')}</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="message">{t('about.contactForm.message')}</Label>
-              <Textarea
-                id="message"
-                name="message"
-                rows={5}
-                value={formData.message}
-                onChange={handleChange}
-                required
-                disabled={isSubmitting}
-              />
-            </div>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="w-full md:w-auto premium-button"
-            >
-              {isSubmitting ? t('about.contactForm.submitting') : t('about.contactForm.submit')}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {/* (Remove the entire Contact Form Card section) */}
 
       {/* Footer */}
       <div className="text-center space-y-2 py-8 border-t">

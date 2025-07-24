@@ -404,17 +404,8 @@
       "sampleExport": "A sample export (CSV/XLS) with dummy data (or a screenshot)",
       "extraNotes": "Any extra notes on their interface"
     },
-    "contactInfo": "You can email it to: support@shkalim.com or use the contact form below.",
-    "contactForm": {
-      "title": "Contact Form",
-      "name": "Name",
-      "email": "Email",
-      "message": "Message",
-      "submit": "Submit",
-      "submitting": "Submitting...",
-      "success": "Message sent successfully!",
-      "error": "Error sending message"
-    },
+    "contactInfo": "You can email it to: support@shkalim.com.",
+    "openSource": "This project is open source. See it on GitHub:",
     "footer": {
       "builtWith": "Built with 💙 in Tel Aviv.",
       "version": "Version: 0.9.0 (MVP) — more features coming soon!"
