@@ -71,3 +71,11 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+
+## Privacy Policy & Terms
+
+See [PRIVACY_POLICY.md](./PRIVACY_POLICY.md) and [TERMS_AND_CONDITIONS.md](./TERMS_AND_CONDITIONS.md) for details on data usage and user rights.
